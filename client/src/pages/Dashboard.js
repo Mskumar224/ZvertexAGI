@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Container, Typography, Box, Paper } from '@mui/material';
+import { Container, Typography, Box, Paper, Button } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import ResumeUpload from '../components/Resume/ResumeUpload';
 import UserDashboard from '../components/Dashboard/UserDashboard';
 import axios from 'axios';
 
 function Dashboard() {
   const [user, setUser] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -21,43 +23,13 @@ function Dashboard() {
     fetchUser();
   }, []);
 
-  const renderDashboardContent = () => {
-    if (!user?.subscription?.plan) return <Typography>Please select a subscription plan to get started.</Typography>;
-    switch (user.subscription.plan) {
-      case 'STUDENT':
-        return (
-          <Box>
-            <Typography variant="h6">Student Dashboard</Typography>
-            <Typography>Manage your single resume and apply to up to 45 jobs daily.</Typography>
-            <ResumeUpload subscription={user.subscription} />
-            <UserDashboard subscription={user.subscription} />
-          </Box>
-        );
-      case 'RECRUITER':
-        return (
-          <Box>
-            <Typography variant="h6">Recruiter Dashboard</Typography>
-            <Typography>Manage up to 5 resumes and apply to 45 jobs daily per resume.</Typography>
-            <ResumeUpload subscription={user.subscription} />
-            <UserDashboard subscription={user.subscription} />
-          </Box>
-        );
-      case 'BUSINESS':
-        return (
-          <Box>
-            <Typography variant="h6">Business Dashboard</Typography>
-            <Typography>Collaborate with 3 recruiters and apply to 145 jobs daily.</Typography>
-            <ResumeUpload subscription={user.subscription} />
-            <UserDashboard subscription={user.subscription} />
-          </Box>
-        );
-      default:
-        return null;
-    }
-  };
-
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Box display="flex" justifyContent="flex-start" alignItems="center" mb={2}>
+        <Button onClick={() => navigate('/')} variant="text" color="primary">
+          ZvertexAGI
+        </Button>
+      </Box>
       <Typography variant="h2" gutterBottom textAlign="center">
         {user?.subscription?.plan ? `${user.subscription.plan} Dashboard` : 'Welcome to Your Dashboard'}
       </Typography>
@@ -74,7 +46,8 @@ function Dashboard() {
             </Typography>
             <Typography>{user.subscription?.submissions || 0} Submissions/day</Typography>
           </Paper>
-          {renderDashboardContent()}
+          <ResumeUpload subscription={user.subscription} />
+          <UserDashboard subscription={user.subscription} />
         </Box>
       )}
     </Container>

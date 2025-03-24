@@ -1,7 +1,6 @@
 const express = require('express');
 const auth = require('../middleware/auth');
 const JobApplication = require('../models/JobApplication');
-const User = require('../models/User');
 const { verifyCompany } = require('../utils/companyDetector');
 const { sendJobApplicationEmail } = require('../utils/email');
 const router = express.Router();
@@ -75,38 +74,8 @@ router.get('/applications', auth, async (req, res) => {
   }
 });
 
-async function sendDailySummary() {
-  const users = await User.find();
-  const today = new Date().setHours(0, 0, 0, 0);
-  for (const user of users) {
-    const applications = await JobApplication.find({
-      userId: user._id,
-      appliedAt: { $gte: today },
-    });
-    if (applications.length > 0) {
-      const mailOptions = {
-        from: process.env.EMAIL_USER,
-        to: user.email,
-        subject: 'Your Daily Job Application Summary - ZvertexAGI',
-        html: `
-          <h2>Daily Application Summary</h2>
-          <p>Dear ${user.email},</p>
-          <p>You've applied to ${applications.length} jobs today. Here are the details:</p>
-          <ul>
-            ${applications.map(app => `<li>${app.position} at ${app.company} - <a href="${app.jobLink}" target="_blank">View Job</a></li>`).join('')}
-          </ul>
-          <p>Keep up the momentum! Visit your dashboard to track your applications: <a href="${process.env.CLIENT_URL}/dashboard">${process.env.CLIENT_URL}/dashboard</a></p>
-          <p>Best regards,<br/>The ZvertexAGI Team</p>
-        `,
-      };
-      transporter.sendMail(mailOptions, (err) => {
-        if (err) console.error(err);
-      });
-    }
-  }
-}
-
 async function fetchJobs(companies, technologies) {
+  // Mock job fetching - replace with real API (e.g., LinkedIn, Indeed)
   return companies.flatMap(company => technologies.map(tech => ({
     id: `job_${Math.random().toString(36).substr(2, 9)}`,
     title: `${tech} Developer`,
@@ -117,8 +86,8 @@ async function fetchJobs(companies, technologies) {
 }
 
 async function applyToJob(job) {
+  // Mock job application - replace with real API call
   console.log(`Applying to ${job.title} at ${job.company}`);
 }
 
-// Export both router and sendDailySummary
-module.exports = { router, sendDailySummary };
+module.exports = router;

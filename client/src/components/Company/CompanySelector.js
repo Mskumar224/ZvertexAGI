@@ -1,14 +1,14 @@
-import React, { useState, useContext } from 'react';
-import { Autocomplete, TextField, Button, Box, Typography, CircularProgress, Alert, Fade } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Autocomplete, TextField, Button, Box, Typography, CircularProgress, Alert } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { ModalContext } from '../../App';
 
 function CompanySelector({ technologies }) {
   const [companies, setCompanies] = useState([]);
   const [manualCompany, setManualCompany] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { openModal } = useContext(ModalContext);
+  const navigate = useNavigate();
 
   const predefinedCompanies = [
     'Google', 'Microsoft', 'Amazon', 'Facebook', 'Apple', 'Tesla', 'Netflix', 'IBM', 'Oracle', 'Intel',
@@ -44,43 +44,59 @@ function CompanySelector({ technologies }) {
   };
 
   const handleApply = async () => {
+    setLoading(true);
     try {
       const res = await axios.post(
         `${process.env.REACT_APP_API_URL}/api/job/apply`,
         { companies, technologies },
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
-      openModal(
-        <Box>
-          <Typography variant="h6">Application Submitted!</Typography>
-          <Typography>Successfully applied to {res.data.length} jobs! Check your email for confirmation.</Typography>
-        </Box>
-      );
+      alert(`Successfully applied to ${res.data.length} jobs! Check your email for confirmation.`);
+      setLoading(false);
+      navigate('/dashboard');
     } catch (err) {
       setError('Failed to apply to jobs');
+      setLoading(false);
     }
   };
 
+  useEffect(() => {
+    if (companies.length > 0) {
+      handleApply();
+    }
+  }, [companies]);
+
   return (
-    <Fade in timeout={500}>
-      <Box sx={{ mt: 3 }}>
-        <Typography variant="h6" gutterBottom>Select Companies</Typography>
-        <Autocomplete
-          multiple
-          options={predefinedCompanies}
-          value={companies}
-          onChange={(e, newValue) => setCompanies(newValue)}
-          freeSolo
-          renderInput={(params) => <TextField {...params} label="Companies" />}
-        />
-        <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
-          <TextField label="Add Company" value={manualCompany} onChange={(e) => setManualCompany(e.target.value)} fullWidth />
-          <Button variant="outlined" onClick={handleAddCompany} disabled={loading}>{loading ? <CircularProgress size={24} /> : 'Add'}</Button>
-        </Box>
-        {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
-        <Button variant="contained" onClick={handleApply} disabled={!companies.length || loading} sx={{ mt: 2 }}>Apply to Jobs</Button>
+    <Box sx={{ mt: 3 }}>
+      <Box display="flex" justifyContent="flex-start" alignItems="center" mb={2}>
+        <Button onClick={() => navigate('/')} variant="text" color="primary">
+          ZvertexAGI
+        </Button>
       </Box>
-    </Fade>
+      <Typography variant="h6" gutterBottom>
+        Select Companies
+      </Typography>
+      <Autocomplete
+        multiple
+        options={predefinedCompanies}
+        value={companies}
+        onChange={(e, newValue) => setCompanies(newValue)}
+        freeSolo
+        renderInput={(params) => <TextField {...params} label="Companies" />}
+      />
+      <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
+        <TextField
+          label="Add Company"
+          value={manualCompany}
+          onChange={(e) => setManualCompany(e.target.value)}
+          fullWidth
+        />
+        <Button variant="outlined" onClick={handleAddCompany} disabled={loading}>
+          {loading ? <CircularProgress size={24} /> : 'Add'}
+        </Button>
+      </Box>
+      {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
+    </Box>
   );
 }
 

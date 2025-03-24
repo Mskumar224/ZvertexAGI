@@ -18,12 +18,16 @@ router.post('/create', auth, async (req, res) => {
 
   try {
     const user = await User.findById(req.user.userId);
-    const subscription = new Subscription({ userId: req.user.userId, plan });
+    const subscription = new Subscription({
+      userId: req.user.userId,
+      plan,
+    });
     await subscription.save();
 
     user.subscription = { plan, ...plans[plan] };
     await user.save();
 
+    // Optional Stripe payment (for now, allow skipping)
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [{
@@ -43,7 +47,7 @@ router.post('/create', auth, async (req, res) => {
     await subscription.save();
 
     sendSubscriptionEmail(user.email, plan);
-    res.json({ sessionId: session.id }); // Return sessionId for Stripe, allow skipping payment
+    res.json({ sessionId: session.id }); // Return sessionId for Stripe, but allow proceeding without payment
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
