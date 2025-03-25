@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Container, Typography, Box } from '@mui/material';
 import ResumeUpload from '../components/ResumeUpload';
-import JobApply from '../JobApply'; // Fixed path
+import JobApply from '../JobApply';
 import JobTracker from '../components/JobTracker';
 
 function RecruiterDashboard() {
