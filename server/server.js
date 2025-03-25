@@ -2,6 +2,7 @@ require('dotenv').config();
 console.log('Environment Variables Loaded:');
 console.log('MONGO_URI:', process.env.MONGO_URI || 'Not set');
 console.log('PORT:', process.env.PORT || 'Not set');
+console.log('TEST_VAR:', process.env.TEST_VAR || 'Not set');
 
 const express = require('express');
 const mongoose = require('mongoose');
@@ -29,8 +30,10 @@ app.use('/api/job', jobRoutes);
 
 app.get('/test', (req, res) => res.send('Server is alive'));
 
+// Fallback if MONGO_URI is undefined
+const mongoUri = process.env.MONGO_URI || 'mongodb+srv://zvertex247:F8i6QLh25lDlR4vf@cluster0.p7xqu.mongodb.net/zvertexagi?retryWrites=true&w=majority';
 mongoose.set('strictQuery', true);
-mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+mongoose.connect(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('MongoDB connected'))
   .catch((err) => console.error('MongoDB connection error:', err.message));
 
