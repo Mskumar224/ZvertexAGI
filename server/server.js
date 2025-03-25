@@ -20,15 +20,25 @@ const corsOptions = {
   origin: [
     'https://67e23ab86a51458e138e0032--zvertexagi.netlify.app',
     'https://67e2641113aab6f39709cd06--zvertexagi.netlify.app',
-    'http://localhost:3000',
+    'https://67e34047bb1fc30008a62bbb--zvertexagi.netlify.app', // Add your current Netlify domain
+    'http://localhost:3000', // For local development
   ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Include OPTIONS for preflight
   allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true, // If you need to send cookies or auth headers
+  optionsSuccessStatus: 200, // Ensure preflight returns 200
 };
+
+// Apply CORS middleware
 app.use(cors(corsOptions));
+
+// Handle preflight requests explicitly (optional, but ensures compatibility)
+app.options('*', cors(corsOptions));
 
 app.use(express.json());
 app.use(fileUpload());
+
+// Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/subscription', subscriptionRoutes);
 app.use('/api/job', jobRoutes);
