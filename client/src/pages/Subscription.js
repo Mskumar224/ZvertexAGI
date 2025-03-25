@@ -18,10 +18,16 @@ function Subscription() {
 
   const handleSubscription = async (plan) => {
     try {
-      if (!stripe || !elements) throw new Error('Stripe not initialized');
+      if (!stripe || !elements) {
+        throw new Error('Stripe not initialized. Check your publishable key.');
+      }
+      console.log('Creating payment method with Stripe...');
       const cardElement = elements.getElement(CardElement);
       const { paymentMethod, error } = await stripe.createPaymentMethod({ type: 'card', card: cardElement });
-      if (error) throw new Error(error.message);
+      if (error) {
+        throw new Error(error.message);
+      }
+      console.log('Payment Method Created:', paymentMethod.id);
 
       const response = await axios.post(
         `${process.env.REACT_APP_API_URL}/api/subscription/subscribe`,
@@ -38,7 +44,7 @@ function Subscription() {
       history.push(redirectMap[plan.title]);
     } catch (err) {
       console.error('Subscription Error:', err.message || err);
-      alert(`Subscription failed: ${err.message || 'Unknown error'}`);
+      alert(`Subscription failed: ${err.message || 'Unknown error. Please check your Stripe key or network.'}`);
     }
   };
 
@@ -64,10 +70,14 @@ function Subscription() {
           </Grid>
         ))}
       </Grid>
-      {stripe && (
+      {stripe ? (
         <Box sx={{ mt: 5, maxWidth: 400, mx: 'auto' }}>
           <CardElement options={{ style: { base: { fontSize: '16px' } } }} />
         </Box>
+      ) : (
+        <Typography color="error" align="center" sx={{ mt: 5 }}>
+          Stripe failed to load. Check your publishable key in environment variables.
+        </Typography>
       )}
     </Container>
   );
