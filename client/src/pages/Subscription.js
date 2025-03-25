@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Container, Typography, Grid, Box } from '@mui/material';
 import { useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
 import SubscriptionCard from '../components/SubscriptionCard';
@@ -9,6 +9,8 @@ function Subscription() {
   const stripe = useStripe();
   const elements = useElements();
   const history = useHistory();
+  const [paymentError, setPaymentError] = useState(null);
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
 
   const plans = [
     { title: 'STUDENT', price: 39, resumes: 1, submissions: 45, description: 'Perfect for students starting their career.' },
@@ -17,34 +19,62 @@ function Subscription() {
   ];
 
   const handleSubscription = async (plan) => {
+    setPaymentError(null);
+    setPaymentProcessing(true);
+
     try {
       if (!stripe || !elements) {
         throw new Error('Stripe not initialized. Check your publishable key.');
       }
-      console.log('Creating payment method with Stripe...');
+
       const cardElement = elements.getElement(CardElement);
-      const { paymentMethod, error } = await stripe.createPaymentMethod({ type: 'card', card: cardElement });
+      const { paymentMethod, error } = await stripe.createPaymentMethod({
+        type: 'card',
+        card: cardElement,
+      });
+
       if (error) {
         throw new Error(error.message);
       }
-      console.log('Payment Method Created:', paymentMethod.id);
 
+      // Send payment method to backend
       const response = await axios.post(
         `${process.env.REACT_APP_API_URL}/api/subscription/subscribe`,
         { paymentMethodId: paymentMethod.id, plan: plan.title },
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
-      console.log('Subscription Response:', response.data);
 
-      const redirectMap = {
-        STUDENT: '/student-dashboard',
-        RECRUITER: '/recruiter-dashboard',
-        BUSINESS: '/business-dashboard',
-      };
-      history.push(redirectMap[plan.title]);
+      if (response.data.clientSecret) {
+        // Handle 3D Secure or additional authentication
+        const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(
+          response.data.clientSecret
+        );
+        if (confirmError) {
+          throw new Error(confirmError.message);
+        }
+        if (paymentIntent.status === 'succeeded') {
+          // Payment succeeded
+          const redirectMap = {
+            STUDENT: '/student-dashboard',
+            RECRUITER: '/recruiter-dashboard',
+            BUSINESS: '/business-dashboard',
+          };
+          history.push(redirectMap[plan.title]);
+        }
+      } else if (response.data.message === 'Subscription successful') {
+        // Direct success without additional action
+        const redirectMap = {
+          STUDENT: '/student-dashboard',
+          RECRUITER: '/recruiter-dashboard',
+          BUSINESS: '/business-dashboard',
+        };
+        history.push(redirectMap[plan.title]);
+      }
     } catch (err) {
       console.error('Subscription Error:', err.message || err);
-      alert(`Subscription failed: ${err.message || 'Unknown error. Please check your Stripe key or network.'}`);
+      setPaymentError(err.message || 'Unknown error. Please try again.');
+    } finally {
+      setPaymentProcessing(false);
     }
   };
 
@@ -66,6 +96,7 @@ function Subscription() {
               submissions={plan.submissions}
               description={plan.description}
               onSelect={() => handleSubscription(plan)}
+              disabled={paymentProcessing}
             />
           </Grid>
         ))}
@@ -73,6 +104,14 @@ function Subscription() {
       {stripe ? (
         <Box sx={{ mt: 5, maxWidth: 400, mx: 'auto' }}>
           <CardElement options={{ style: { base: { fontSize: '16px' } } }} />
+          {paymentError && (
+            <Typography color="error" sx={{ mt: 2 }}>
+              {paymentError}
+            </Typography>
+          )}
+          {paymentProcessing && (
+            <Typography sx={{ mt: 2 }}>Processing payment...</Typography>
+          )}
         </Box>
       ) : (
         <Typography color="error" align="center" sx={{ mt: 5 }}>

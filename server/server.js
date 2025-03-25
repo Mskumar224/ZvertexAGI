@@ -19,7 +19,8 @@ const app = express();
 const corsOptions = {
   origin: [
     'https://67e23ab86a51458e138e0032--zvertexagi.netlify.app',
-    'https://67e2641113aab6f39709cd06--zvertexagi.netlify.app', // Added new origin
+    'https://67e2641113aab6f39709cd06--zvertexagi.netlify.app',
+    'https://67e2d3beb8e0310008311921--zvertexagi.netlify.app', // Latest origin
     'http://localhost:3000'
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
