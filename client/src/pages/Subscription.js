@@ -36,16 +36,22 @@ function Subscription() {
       if (error) {
         throw new Error(error.message);
       }
+      console.log('Payment Method ID:', paymentMethod.id); // Debug log
 
-      // Send payment method to backend
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found. Please log in.');
+      }
+
       const response = await axios.post(
         `${process.env.REACT_APP_API_URL}/api/subscription/subscribe`,
         { paymentMethodId: paymentMethod.id, plan: plan.title },
-        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
+      console.log('Server Response:', response.data); // Debug log
+
       if (response.data.clientSecret) {
-        // Handle 3D Secure or additional authentication
         const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(
           response.data.clientSecret
         );
@@ -53,7 +59,6 @@ function Subscription() {
           throw new Error(confirmError.message);
         }
         if (paymentIntent.status === 'succeeded') {
-          // Payment succeeded
           const redirectMap = {
             STUDENT: '/student-dashboard',
             RECRUITER: '/recruiter-dashboard',
@@ -62,7 +67,6 @@ function Subscription() {
           history.push(redirectMap[plan.title]);
         }
       } else if (response.data.message === 'Subscription successful') {
-        // Direct success without additional action
         const redirectMap = {
           STUDENT: '/student-dashboard',
           RECRUITER: '/recruiter-dashboard',
@@ -71,8 +75,9 @@ function Subscription() {
         history.push(redirectMap[plan.title]);
       }
     } catch (err) {
-      console.error('Subscription Error:', err.message || err);
-      setPaymentError(err.message || 'Unknown error. Please try again.');
+      const errorMessage = err.response?.data?.error || err.message || 'Unknown error';
+      console.error('Subscription Error:', errorMessage, err.response?.data); // Detailed log
+      setPaymentError(`Subscription failed: ${errorMessage}`);
     } finally {
       setPaymentProcessing(false);
     }
