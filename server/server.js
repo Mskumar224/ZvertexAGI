@@ -17,10 +17,13 @@ app.use('/api/auth', authRoutes);
 app.use('/api/subscription', subscriptionRoutes);
 app.use('/api/job', jobRoutes);
 
-mongoose.set('strictQuery', true); // Add this line to suppress the warning
+// Test route for deployment check
+app.get('/test', (req, res) => res.send('Server is alive'));
+
+mongoose.set('strictQuery', true);
 mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('MongoDB connected'))
-  .catch((err) => console.log(err));
+  .catch((err) => console.log('MongoDB connection error:', err));
 
 scheduleDailyEmails();
 
