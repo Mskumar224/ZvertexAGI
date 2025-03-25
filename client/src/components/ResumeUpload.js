@@ -6,20 +6,31 @@ function ResumeUpload({ onResumeParsed }) {
   const [file, setFile] = useState(null);
   const [techs, setTechs] = useState([]);
   const [manualTech, setManualTech] = useState('');
+  const [error, setError] = useState(null);
 
   const handleUpload = async () => {
+    if (!file) {
+      setError('Please select a file to upload');
+      return;
+    }
+
     const formData = new FormData();
     formData.append('resume', file);
 
     try {
       const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/api/job/upload-resume`, formData, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'multipart/form-data' },
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'multipart/form-data',
+        },
       });
       setTechs(data.keywords);
       onResumeParsed(data.keywords);
-    } catch (error) {
-      console.error('Upload Error:', error.response ? error.response.data : error.message);
-      alert('Resume upload failed!');
+      setError(null);
+    } catch (err) {
+      const errorMessage = err.response?.data?.error || 'Resume upload failed';
+      console.error('Upload Error:', err.response?.data || err.message);
+      setError(errorMessage);
     }
   };
 
@@ -35,6 +46,11 @@ function ResumeUpload({ onResumeParsed }) {
       <Button variant="contained" color="primary" onClick={handleUpload} disabled={!file}>
         Upload
       </Button>
+      {error && (
+        <Typography color="error" sx={{ mt: 2 }}>
+          {error}
+        </Typography>
+      )}
       {techs.length > 0 && (
         <Box sx={{ mt: 2 }}>
           <Typography>Suggested Technologies: {techs.join(', ')}</Typography>
