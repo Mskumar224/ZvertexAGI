@@ -2,7 +2,6 @@ require('dotenv').config();
 console.log('Environment Variables Loaded:');
 console.log('MONGO_URI:', process.env.MONGO_URI || 'Not set');
 console.log('PORT:', process.env.PORT || 'Not set');
-console.log('TEST_VAR:', process.env.TEST_VAR || 'Not set');
 
 const express = require('express');
 const mongoose = require('mongoose');
@@ -15,8 +14,13 @@ const { scheduleDailyEmails } = require('./utils/dailyEmail');
 
 const app = express();
 
+// CORS configuration
 const corsOptions = {
-  origin: 'https://67e23ab86a51458e138e0032--zvertexagi.netlify.app',
+  origin: [
+    'https://67e23ab86a51458e138e0032--zvertexagi.netlify.app',
+    'https://67e2641113aab6f39709cd06--zvertexagi.netlify.app', // Add new Netlify domain
+    'http://localhost:3000' // For local testing
+  ],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
@@ -30,14 +34,23 @@ app.use('/api/job', jobRoutes);
 
 app.get('/test', (req, res) => res.send('Server is alive'));
 
-// Fallback if MONGO_URI is undefined
-const mongoUri = process.env.MONGO_URI || 'mongodb+srv://zvertex247:F8i6QLh25lDlR4vf@cluster0.p7xqu.mongodb.net/zvertexagi?retryWrites=true&w=majority';
-mongoose.set('strictQuery', true);
-mongoose.connect(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log('MongoDB connected'))
-  .catch((err) => console.error('MongoDB connection error:', err.message));
+// MongoDB connection with error handling
+const mongoUri = process.env.MONGO_URI;
+if (!mongoUri) {
+  console.error('MONGO_URI is not defined. Please set it in environment variables.');
+} else {
+  mongoose.set('strictQuery', true);
+  mongoose.connect(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true })
+    .then(() => console.log('MongoDB connected'))
+    .catch((err) => console.error('MongoDB connection error:', err.message));
+}
 
 scheduleDailyEmails();
 
 const PORT = process.env.PORT || 5002;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+// Handle uncaught exceptions to prevent crashes
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err.message);
+});
