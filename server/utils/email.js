@@ -1,3 +1,4 @@
+// server/utils/email.js
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
@@ -8,30 +9,13 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-function sendSubscriptionEmail(email, plan) {
-  const mailOptions = {
+async function sendEmail(to, subject, text) {
+  await transporter.sendMail({
     from: process.env.EMAIL_USER,
-    to: email,
-    subject: 'Welcome to ZvertexAGI!',
-    text: `Thank you for subscribing to our ${plan} plan! Start applying to jobs now at ${process.env.CLIENT_URL}/dashboard`,
-  };
-
-  transporter.sendMail(mailOptions, (err) => {
-    if (err) console.error(err);
+    to,
+    subject,
+    text,
   });
 }
 
-function sendJobApplicationEmail(email, job) {
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: email,
-    subject: 'Job Application Confirmation',
-    text: `Your application for ${job.title} at ${job.company} has been submitted!\nJob Link: ${job.link}\nJob ID: ${job.id}`,
-  };
-
-  transporter.sendMail(mailOptions, (err) => {
-    if (err) console.error(err);
-  });
-}
-
-module.exports = { sendSubscriptionEmail, sendJobApplicationEmail };
+module.exports = { sendEmail };

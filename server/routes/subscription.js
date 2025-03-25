@@ -1,55 +1,38 @@
 const express = require('express');
-const Stripe = require('stripe');
-const auth = require('../middleware/auth');
-const User = require('../models/User');
-const Subscription = require('../models/Subscription');
-const { sendSubscriptionEmail } = require('../utils/email');
 const router = express.Router();
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const User = require('../models/User');
+const { sendEmail } = require('../utils/email');
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+router.post('/subscribe', async (req, res) => {
+  const { paymentMethodId, plan } = req.body;
+  const token = req.headers.authorization.split(' ')[1];
+  const decoded = jwt.verify(token, 'secret');
+  const user = await User.findById(decoded.id);
 
-router.post('/create', auth, async (req, res) => {
-  const { plan } = req.body;
   const plans = {
-    STUDENT: { price: 3900, resumes: 1, submissions: 45 },
-    RECRUITER: { price: 7900, resumes: 5, submissions: 45 },
-    BUSINESS: { price: 15900, recruiters: 3, submissions: 145 },
+    STUDENT: { price: 39, resumes: 1, submissions: 45 },
+    RECRUITER: { price: 79, resumes: 5, submissions: 45 },
+    BUSINESS: { price: 159, resumes: 3, submissions: 145 },
   };
 
   try {
-    const user = await User.findById(req.user.userId);
-    const subscription = new Subscription({
-      userId: req.user.userId,
-      plan,
+    await stripe.paymentIntents.create({
+      amount: plans[plan].price * 100,
+      currency: 'usd',
+      payment_method: paymentMethodId,
+      confirm: true,
     });
-    await subscription.save();
 
-    user.subscription = { plan, ...plans[plan] };
+    user.subscription = plan;
+    user.resumes = plans[plan].resumes;
+    user.submissions = plans[plan].submissions;
     await user.save();
 
-    // Optional Stripe payment (for now, allow skipping)
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: [{
-        price_data: {
-          currency: 'usd',
-          product_data: { name: `${plan} Plan` },
-          unit_amount: plans[plan].price,
-        },
-        quantity: 1,
-      }],
-      mode: 'payment',
-      success_url: `${process.env.CLIENT_URL}/dashboard`,
-      cancel_url: `${process.env.CLIENT_URL}/`,
-    });
-
-    subscription.stripeSessionId = session.id;
-    await subscription.save();
-
-    sendSubscriptionEmail(user.email, plan);
-    res.json({ sessionId: session.id }); // Return sessionId for Stripe, but allow proceeding without payment
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    await sendEmail(user.email, 'Subscription Confirmation', `Welcome to ${plan}!`);
+    res.json({ message: 'Subscription successful' });
+  } catch (error) {
+    res.status(400).json({ error: 'Subscription failed' });
   }
 });
 

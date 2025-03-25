@@ -1,93 +1,53 @@
 const express = require('express');
-const auth = require('../middleware/auth');
-const JobApplication = require('../models/JobApplication');
-const { verifyCompany } = require('../utils/companyDetector');
-const { sendJobApplicationEmail } = require('../utils/email');
 const router = express.Router();
+const User = require('../models/User');
+const Job = require('../models/Job');
+const { parseResume } = require('../utils/resumeParser');
+const { sendEmail } = require('../utils/email');
+const axios = require('axios');
 
-router.post('/verify-company', auth, async (req, res) => {
+router.post('/upload-resume', async (req, res) => {
+  const resume = req.files.resume;
+  const keywords = await parseResume(resume);
+  res.json({ keywords });
+});
+
+router.post('/detect-company', async (req, res) => {
   const { company } = req.body;
   try {
-    const valid = await verifyCompany(company);
-    res.json({ valid });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    const response = await axios.get(`https://api.duckduckgo.com/?q=${company}&format=json`);
+    const valid = response.data.Heading.includes(company);
+    res.json({ valid, company });
+  } catch (error) {
+    res.status(400).json({ error: 'Detection failed' });
   }
 });
 
-router.post('/apply', auth, async (req, res) => {
-  const { companies, technologies } = req.body;
-  try {
-    const user = await User.findById(req.user.userId);
-    if (!user.subscription) return res.status(400).json({ msg: 'No active subscription' });
-
-    const today = new Date().setHours(0, 0, 0, 0);
-    const applicationsToday = await JobApplication.countDocuments({
-      userId: user._id,
-      appliedAt: { $gte: today },
-    });
-    if (applicationsToday >= user.subscription.submissions) {
-      return res.status(400).json({ msg: 'Daily submission limit reached' });
-    }
-
-    const jobs = await fetchJobs(companies, technologies);
-    const applications = [];
-
-    for (const job of jobs) {
-      if (applicationsToday + applications.length >= user.subscription.submissions) break;
-
-      const existing = await JobApplication.findOne({ userId: user._id, jobId: job.id });
-      if (existing) continue;
-
-      const application = new JobApplication({
-        userId: user._id,
-        jobId: job.id,
-        position: job.title,
-        company: job.company,
-        jobLink: job.link,
-        requiresDocuments: job.requiresDocuments,
-      });
-
-      if (job.requiresDocuments) {
-        application.status = 'Pending Documents';
-      } else {
-        await applyToJob(job);
-        sendJobApplicationEmail(user.email, job);
-      }
-
-      await application.save();
-      applications.push(application);
-    }
-
-    res.json(applications);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+router.post('/fetch-jobs', async (req, res) => {
+  const { company, keywords } = req.body;
+  // Mock job fetch (replace with real API like LinkedIn Jobs)
+  const jobs = [
+    { id: '1', title: 'Software Engineer', company, link: 'http://example.com/job1', requiresDocs: false },
+    { id: '2', title: 'Data Analyst', company, link: 'http://example.com/job2', requiresDocs: true },
+  ];
+  res.json({ jobs });
 });
 
-router.get('/applications', auth, async (req, res) => {
-  try {
-    const applications = await JobApplication.find({ userId: req.user.userId }).sort({ appliedAt: -1 });
-    res.json(applications);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+router.post('/apply', async (req, res) => {
+  const { jobId } = req.body;
+  const token = req.headers.authorization.split(' ')[1];
+  const decoded = jwt.verify(token, 'secret');
+  const user = await User.findById(decoded.id);
+
+  const job = await Job.findOne({ jobId });
+  if (!job) {
+    const newJob = new Job({ jobId, applied: true, user: user._id });
+    await newJob.save();
+    user.jobsApplied.push(newJob._id);
+    await user.save();
+    await sendEmail(user.email, 'Job Applied', `Applied to job ID: ${jobId}. Check: http://example.com/job${jobId}`);
   }
+  res.json({ message: 'Applied' });
 });
-
-async function fetchJobs(companies, technologies) {
-  // Mock job fetching - replace with real API (e.g., LinkedIn, Indeed)
-  return companies.flatMap(company => technologies.map(tech => ({
-    id: `job_${Math.random().toString(36).substr(2, 9)}`,
-    title: `${tech} Developer`,
-    company,
-    link: `https://${company.toLowerCase().replace(/\s/g, '')}.com/jobs/${tech}-${Math.random().toString(36).substr(2, 9)}`,
-    requiresDocuments: Math.random() > 0.5,
-  })));
-}
-
-async function applyToJob(job) {
-  // Mock job application - replace with real API call
-  console.log(`Applying to ${job.title} at ${job.company}`);
-}
 
 module.exports = router;

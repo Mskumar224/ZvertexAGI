@@ -1,31 +1,17 @@
 import React from 'react';
-import { Container, Typography, Box, Button } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
-import Login from '../components/Auth/Login';
-import Signup from '../components/Auth/Signup';
+import { Container, Typography, Button } from '@mui/material';
+import { Link } from 'react-router-dom';
 
 function Home() {
-  const navigate = useNavigate();
-
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
-      <Box display="flex" justifyContent="flex-start" alignItems="center" mb={2}>
-        <Button onClick={() => navigate('/')} variant="text" color="primary">
-          ZvertexAGI
-        </Button>
-      </Box>
-      <Box textAlign="center" mb={4}>
-        <Typography variant="h2" color="primary">
-          Welcome to ZvertexAGI
-        </Typography>
-        <Typography variant="subtitle1" color="textSecondary">
-          Your AI-powered job application assistant
-        </Typography>
-      </Box>
-      <Box display="flex" justifyContent="space-between" gap={4}>
-        <Login />
-        <Signup />
-      </Box>
+    <Container sx={{ py: 5, textAlign: 'center' }}>
+      <Typography variant="h2" gutterBottom>Welcome to ZvertexAGI</Typography>
+      <Typography variant="h5" gutterBottom>
+        Elevate your career with our AI-driven job application platform. Upload your resume, select your subscription, and let us auto-apply to top jobs for you!
+      </Typography>
+      <Button variant="contained" color="primary" component={Link} to="/signup" sx={{ mt: 3 }}>
+        Get Started
+      </Button>
     </Container>
   );
 }

@@ -7,9 +7,7 @@ const theme = createTheme({
     background: { default: '#f5f5f5' },
   },
   typography: {
-    fontFamily: 'Roboto, Arial, sans-serif',
-    h2: { fontWeight: 700 },
-    h5: { fontWeight: 600 },
+    fontFamily: 'Roboto, sans-serif',
   },
 });
 
