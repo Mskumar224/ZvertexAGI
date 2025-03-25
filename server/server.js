@@ -10,20 +10,26 @@ const { scheduleDailyEmails } = require('./utils/dailyEmail');
 
 const app = express();
 
-app.use(cors());
+// Configure CORS to allow your Netlify domain
+const corsOptions = {
+  origin: 'https://67e23ab86a51458e138e0032--zvertexagi.netlify.app', // Your Netlify URL
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed methods
+  allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
+};
+app.use(cors(corsOptions));
+
 app.use(express.json());
 app.use(fileUpload());
 app.use('/api/auth', authRoutes);
 app.use('/api/subscription', subscriptionRoutes);
 app.use('/api/job', jobRoutes);
 
-// Test route for deployment check
 app.get('/test', (req, res) => res.send('Server is alive'));
 
 mongoose.set('strictQuery', true);
 mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('MongoDB connected'))
-  .catch((err) => console.log('MongoDB connection error:', err));
+  .catch((err) => console.error('MongoDB connection error:', err.message));
 
 scheduleDailyEmails();
 
