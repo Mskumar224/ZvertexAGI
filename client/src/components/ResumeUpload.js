@@ -17,6 +17,7 @@ function ResumeUpload({ onResumeParsed }) {
 
     const formData = new FormData();
     formData.append('resume', file);
+    console.log('Uploading resume:', { fileName: file.name, size: file.size });
 
     try {
       const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/api/job/upload-resume`, formData, {
@@ -29,6 +30,7 @@ function ResumeUpload({ onResumeParsed }) {
       onResumeParsed(data.keywords);
       setError(null);
     } catch (err) {
+      console.error('Resume Upload Failed:', err);
       setError(err.response?.data?.error || 'Resume upload failed');
     }
   };

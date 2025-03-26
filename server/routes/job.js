@@ -12,25 +12,35 @@ const axiosInstance = axios.create({ timeout: 10000 });
 
 router.post('/upload-resume', async (req, res) => {
   const token = req.headers.authorization?.split('Bearer ')[1];
-  console.log('Upload Resume Request:', { tokenProvided: !!token, files: !!req.files });
+  console.log('Upload Resume Request:', {
+    tokenProvided: !!token,
+    filesReceived: !!req.files,
+    fileName: req.files?.resume?.name,
+  });
 
-  if (!token) return res.status(401).json({ error: 'No token provided' });
+  if (!token) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     const user = await User.findById(decoded.id);
-    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!user) {
+      console.log('User not found for ID:', decoded.id);
+      return res.status(404).json({ error: 'User not found' });
+    }
 
     if (!req.files || !req.files.resume) {
+      console.log('No resume file in request');
       return res.status(400).json({ error: 'No resume file uploaded' });
     }
 
     const resume = req.files.resume;
     const keywords = await parseResume(resume);
-    console.log('Resume Parsed:', { keywords });
+    console.log('Resume Parsed Successfully:', { keywords });
     res.json({ keywords });
   } catch (error) {
-    console.error('Resume Upload Error:', error.message);
+    console.error('Resume Upload Error:', error.message, error.stack);
     res.status(500).json({ error: 'Failed to upload resume', details: error.message });
   }
 });
