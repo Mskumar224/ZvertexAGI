@@ -19,32 +19,55 @@ const transporter = nodemailer.createTransport({
 
 router.post('/upload-resume', async (req, res) => {
   const token = req.headers.authorization?.split('Bearer ')[1];
-  if (!req.files || !req.files.resume) return res.status(400).json({ error: 'No resume uploaded' });
+  if (!req.files || !req.files.resume) {
+    return res.status(400).json({ error: 'No resume uploaded' });
+  }
 
   try {
+    if (!token) {
+      return res.status(401).json({ error: 'No authentication token provided' });
+    }
     const decoded = jwt.verify(token, JWT_SECRET);
     const user = await User.findById(decoded.id);
-    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
 
     const resume = req.files.resume;
     const keywords = await parseResume(resume);
+    if (!keywords || keywords.length === 0) {
+      return res.status(400).json({ error: 'No keywords extracted from resume' });
+    }
     res.json({ keywords });
   } catch (error) {
-    res.status(500).json({ error: 'Resume parsing failed' });
+    console.error('Error in /upload-resume:', error.message);
+    res.status(500).json({ error: 'Resume parsing failed', details: error.message });
   }
 });
 
 router.post('/verify-companies', async (req, res) => {
   const { companies } = req.body;
-  const results = await Promise.all(companies.map(async (company) => {
-    try {
-      const response = await axios.get(`https://www.google.com/search?q=${encodeURIComponent(company + ' official website')}`);
-      return { name: company, valid: response.status === 200, website: `https://${company.toLowerCase().replace(/\s+/g, '')}.com` };
-    } catch (error) {
-      return { name: company, valid: false };
-    }
-  }));
-  res.json({ companies: results });
+  if (!companies || !Array.isArray(companies) || companies.length === 0) {
+    return res.status(400).json({ error: 'Companies must be a non-empty array' });
+  }
+
+  try {
+    const results = await Promise.all(companies.map(async (company) => {
+      try {
+        const response = await axios.get(`https://www.google.com/search?q=${encodeURIComponent(company + ' official website')}`, {
+          timeout: 5000, // Add timeout to prevent hanging
+        });
+        return { name: company, valid: response.status === 200, website: `https://${company.toLowerCase().replace(/\s+/g, '')}.com` };
+      } catch (error) {
+        console.error(`Failed to verify ${company}:`, error.message);
+        return { name: company, valid: false };
+      }
+    }));
+    res.json({ companies: results });
+  } catch (error) {
+    console.error('Error in /verify-companies:', error.message);
+    res.status(500).json({ error: 'Failed to verify companies', details: error.message });
+  }
 });
 
 router.post('/fetch-jobs', async (req, res) => {
@@ -131,12 +154,24 @@ router.post('/apply', async (req, res) => {
 
 router.get('/tracker', async (req, res) => {
   const token = req.headers.authorization?.split('Bearer ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
+
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     const user = await User.findById(decoded.id).populate('jobsApplied');
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
     res.json(user.jobsApplied || []);
   } catch (error) {
-    res.status(500).json({ error: 'Tracker fetch failed' });
+    console.error('Error fetching job tracker:', error.message);
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+    res.status(500).json({ error: 'Tracker fetch failed', details: error.message });
   }
 });
 
