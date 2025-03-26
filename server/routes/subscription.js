@@ -1,41 +1,60 @@
 const express = require('express');
 const router = express.Router();
+const Stripe = require('stripe');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const nodemailer = require('nodemailer');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
+const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+const JWT_SECRET = process.env.JWT_SECRET;
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+});
 
 router.post('/subscribe', async (req, res) => {
-  const { plan } = req.body;
+  const { plan, paymentMethodId } = req.body;
   const token = req.headers.authorization?.split('Bearer ')[1];
-
-  console.log('Received Subscription Request:', { plan });
-
   if (!token) return res.status(401).json({ error: 'No token provided' });
-  if (!plan) return res.status(400).json({ error: 'Missing plan' });
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     const user = await User.findById(decoded.id);
-    if (!user) throw new Error('User not found');
+    if (!user) return res.status(404).json({ error: 'User not found' });
 
     const planLimits = {
-      STUDENT: { resumes: 1, submissions: 45 },
-      RECRUITER: { resumes: 5, submissions: 45 },
-      BUSINESS: { resumes: 3, submissions: 145 },
+      STUDENT: { resumes: 1, submissions: 45, priceId: 'price_student_id' },
+      RECRUITER: { resumes: 5, submissions: 45, priceId: 'price_recruiter_id' },
+      BUSINESS: { resumes: 3, submissions: 145, priceId: 'price_business_id' },
     };
-    const selectedPlan = planLimits[plan];
-    if (!selectedPlan) throw new Error(`Invalid plan: ${plan}`);
+
+    if (!planLimits[plan]) return res.status(400).json({ error: 'Invalid plan' });
+
+    // Stripe payment (optional for now)
+    if (paymentMethodId) {
+      const customer = await stripe.customers.create({ email: user.email, payment_method: paymentMethodId });
+      await stripe.subscriptions.create({
+        customer: customer.id,
+        items: [{ price: planLimits[plan].priceId }],
+      });
+    }
 
     user.subscription = plan;
-    user.resumes = selectedPlan.resumes;
-    user.submissions = selectedPlan.submissions;
+    user.resumes = planLimits[plan].resumes;
+    user.submissions = planLimits[plan].submissions;
     await user.save();
 
-    res.status(200).json({ message: 'Subscription updated' });
+    // Send subscription confirmation email
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: 'Welcome to ZvertexAGI!',
+      text: `Thank you for subscribing to the ${plan} plan! You can now upload ${planLimits[plan].resumes} resume(s) and submit up to ${planLimits[plan].submissions} applications per day.`,
+    });
+
+    res.json({ message: 'Subscription successful', plan });
   } catch (error) {
-    console.error('Subscription Error:', error.message);
-    res.status(400).json({ error: error.message || 'Failed to update subscription' });
+    res.status(500).json({ error: error.message });
   }
 });
 

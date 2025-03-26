@@ -4,71 +4,59 @@ const User = require('../models/User');
 const Job = require('../models/Job');
 const jwt = require('jsonwebtoken');
 const { parseResume } = require('../utils/resumeParser');
-const { sendJobAppliedEmail } = require('../utils/dailyEmail');
+const axios = require('axios');
+const nodemailer = require('nodemailer');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
+const JWT_SECRET = process.env.JWT_SECRET;
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+});
 
 router.post('/upload-resume', async (req, res) => {
   const token = req.headers.authorization?.split('Bearer ')[1];
-  console.log('Upload Resume Request:', {
-    tokenProvided: !!token,
-    filesReceived: !!req.files,
-    fileName: req.files?.resume?.name,
-  });
-
-  if (!token) return res.status(401).json({ error: 'No token provided' });
+  if (!req.files || !req.files.resume) return res.status(400).json({ error: 'No resume uploaded' });
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     const user = await User.findById(decoded.id);
-    if (!user) {
-      console.log('User not found for ID:', decoded.id);
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    if (!req.files || !req.files.resume) {
-      console.log('No resume file in request');
-      return res.status(400).json({ error: 'No resume file uploaded' });
-    }
+    if (!user) return res.status(404).json({ error: 'User not found' });
 
     const resume = req.files.resume;
     const keywords = await parseResume(resume);
-    console.log('Resume Parsed Successfully:', { keywords });
     res.json({ keywords });
   } catch (error) {
-    console.error('Resume Upload Error:', error.message, error.stack);
-    res.status(500).json({ error: 'Failed to upload resume', details: error.message });
+    res.status(500).json({ error: 'Resume parsing failed' });
+  }
+});
+
+router.post('/verify-company', async (req, res) => {
+  const { company } = req.body;
+  try {
+    const response = await axios.get(`https://www.google.com/search?q=${company}+official+website`);
+    if (response.status === 200) {
+      res.json({ valid: true, website: `https://${company.toLowerCase()}.com` }); // Simplified detection
+    } else {
+      res.json({ valid: false });
+    }
+  } catch (error) {
+    res.json({ valid: false });
   }
 });
 
 router.post('/fetch-jobs', async (req, res) => {
-  const { companies, keywords } = req.body;
-  console.log('Fetch Jobs Request:', { companies, keywords });
-
-  try {
-    // Simulate job fetching (replace with real API later)
-    const jobs = companies.map((company, index) => ({
-      id: `job-${index}-${Date.now()}`,
-      title: `Software Engineer - ${company}`,
-      company,
-      link: `https://${company.toLowerCase()}.com/careers`,
-      applied: false,
-      requiresDocs: index % 2 === 0, // Alternate for testing
-    }));
-    console.log('Jobs Fetched:', jobs);
-    res.json({ jobs });
-  } catch (error) {
-    console.error('Fetch Jobs Error:', error.message);
-    res.status(500).json({ error: 'Failed to fetch jobs', details: error.message });
-  }
+  const { company, keywords } = req.body;
+  // Mock job data (replace with real job API like Indeed in production)
+  const jobs = [
+    { id: `${company}-1`, title: `Software Engineer at ${company}`, company, link: `https://${company.toLowerCase()}.com/jobs/1`, requiresDocs: false },
+    { id: `${company}-2`, title: `Data Analyst at ${company}`, company, link: `https://${company.toLowerCase()}.com/jobs/2`, requiresDocs: true },
+  ];
+  res.json({ jobs });
 });
 
 router.post('/apply', async (req, res) => {
   const { jobId, company, title, link, requiresDocs } = req.body;
   const token = req.headers.authorization?.split('Bearer ')[1];
-  console.log('Apply Job Request:', { jobId, company });
-
-  if (!token) return res.status(401).json({ error: 'No token provided' });
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
@@ -76,49 +64,34 @@ router.post('/apply', async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     const existingJob = await Job.findOne({ jobId, user: user._id });
-    if (existingJob) return res.status(400).json({ error: 'Already applied to this job' });
+    if (existingJob) return res.status(400).json({ error: 'Already applied' });
 
-    const job = new Job({
-      jobId,
-      title,
-      company,
-      link,
-      applied: !requiresDocs,
-      user: user._id,
-      requiresDocs,
-    });
+    const job = new Job({ jobId, title, company, link, applied: true, user: user._id, requiresDocs });
     await job.save();
     user.jobsApplied.push(job._id);
     await user.save();
 
-    if (!requiresDocs) {
-      await sendJobAppliedEmail(user.email, job);
-    }
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: 'Job Application Confirmation',
+      text: `You’ve applied to ${title} at ${company}. Job ID: ${jobId}. View it here: ${link}`,
+    });
 
-    console.log('Job Applied:', { jobId, company });
-    res.json({ message: requiresDocs ? 'Documents required' : `Applied to job ${jobId}`, job });
+    res.json({ message: 'Applied successfully', job });
   } catch (error) {
-    console.error('Job Apply Error:', error.message);
-    res.status(500).json({ error: 'Failed to apply to job', details: error.message });
+    res.status(500).json({ error: 'Application failed' });
   }
 });
 
 router.get('/tracker', async (req, res) => {
   const token = req.headers.authorization?.split('Bearer ')[1];
-  console.log('Tracker Request:', { tokenProvided: !!token });
-
-  if (!token) return res.status(401).json({ error: 'No token provided' });
-
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     const user = await User.findById(decoded.id).populate('jobsApplied');
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    const jobs = user.jobsApplied || [];
-    console.log('Tracker Response:', jobs);
-    res.json(jobs);
+    res.json(user.jobsApplied || []);
   } catch (error) {
-    console.error('Job Tracker Error:', error.message);
-    res.status(500).json({ error: 'Failed to fetch job tracker data', details: error.message });
+    res.status(500).json({ error: 'Tracker fetch failed' });
   }
 });
 

@@ -11,14 +11,13 @@ function DocumentUpload({ job, onClose }) {
     formData.append('jobId', job.id);
 
     try {
-      await axios.post(`${process.env.REACT_APP_API_URL}/api/job/apply-with-docs`, formData, {
+      await axios.post(`${process.env.REACT_APP_API_URL}/api/job/apply`, formData, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'multipart/form-data' },
       });
       alert('Application submitted with documents!');
       onClose();
     } catch (error) {
-      console.error('Upload Error:', error.response ? error.response.data : error.message);
-      alert('Application failed!');
+      console.error('Document Upload Error:', error);
     }
   };
 

@@ -1,107 +1,89 @@
 import React, { useState } from 'react';
-import { Container, Typography, TextField, Button, MenuItem, Select, Box, Chip } from '@mui/material';
+import { Container, Typography, TextField, Button, Select, MenuItem, Box } from '@mui/material';
 import axios from 'axios';
 import DocumentUpload from '../components/DocumentUpload';
 
 function JobApply({ keywords, maxResumes, maxSubmissions }) {
-  const [companies, setCompanies] = useState([]);
+  const [company, setCompany] = useState('');
   const [manualCompany, setManualCompany] = useState('');
   const [jobs, setJobs] = useState([]);
   const [selectedJob, setSelectedJob] = useState(null);
-  const companyList = ['Google', 'Microsoft', 'Amazon', 'Apple', 'Facebook', 'Tesla', 'Netflix', 'IBM', 'Oracle', 'Adobe'];
+  const [error, setError] = useState('');
 
-  const handleAddCompany = () => {
-    if (manualCompany && !companies.includes(manualCompany) && companies.length < 10) {
-      setCompanies([...companies, manualCompany]);
-      setManualCompany('');
+  const companies = [
+    'Google', 'Microsoft', 'Amazon', 'Apple', 'Facebook', 'Tesla', 'IBM', 'Oracle', 'Intel', 'Cisco',
+    'Adobe', 'Salesforce', 'Netflix', 'Spotify', 'Uber', 'Lyft', 'Airbnb', 'Dropbox', 'Slack', 'Zoom',
+    'Twitter', 'LinkedIn', 'PayPal', 'Square', 'Stripe', 'Shopify', 'Etsy', 'Pinterest', 'Reddit', 'Snapchat',
+    'TikTok', 'Twitch', 'Discord', 'Robinhood', 'Coinbase', 'Goldman Sachs', 'JPMorgan', 'Morgan Stanley',
+    'Bank of America', 'Walmart', 'Target', 'Home Depot', 'Boeing', 'Lockheed Martin', 'SpaceX', 'General Motors',
+    'Ford', 'Toyota', 'Samsung'
+  ];
+
+  const verifyCompany = async (companyName) => {
+    try {
+      const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/api/job/verify-company`, { company: companyName });
+      if (data.valid) {
+        fetchJobs(companyName);
+      } else {
+        setError('Company not detected online. Please select a valid company.');
+      }
+    } catch (err) {
+      setError('Company verification failed.');
     }
   };
 
-  const fetchJobs = async () => {
+  const fetchJobs = async (companyName) => {
     try {
       const { data } = await axios.post(
         `${process.env.REACT_APP_API_URL}/api/job/fetch-jobs`,
-        { companies, keywords },
+        { company: companyName, keywords },
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
-      console.log('Jobs Fetched:', data.jobs);
       setJobs(data.jobs);
-    } catch (error) {
-      console.error('Fetch Jobs Error:', error.response?.data || error.message);
+      setError('');
+    } catch (err) {
+      setError('Failed to fetch jobs.');
     }
   };
 
-  const handleDetectAndProceed = async () => {
-    await fetchJobs();
-    for (const job of jobs) {
-      if (!job.applied) {
-        if (!job.requiresDocs) {
-          try {
-            const { data } = await axios.post(
-              `${process.env.REACT_APP_API_URL}/api/job/apply`,
-              { jobId: job.id, company: job.company, title: job.title, link: job.link, requiresDocs: false },
-              { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
-            );
-            setJobs(jobs.map(j => j.id === job.id ? { ...j, applied: true } : j));
-            console.log('Applied to job:', job.id);
-          } catch (error) {
-            console.error('Apply Error:', error.response?.data || error.message);
-          }
-        } else {
-          setSelectedJob(job);
-          break;
-        }
+  const handleApply = async (job) => {
+    if (job.requiresDocs) {
+      setSelectedJob(job);
+    } else {
+      try {
+        const { data } = await axios.post(
+          `${process.env.REACT_APP_API_URL}/api/job/apply`,
+          { jobId: job.id, company: job.company, title: job.title, link: job.link, requiresDocs: job.requiresDocs },
+          { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+        );
+        setJobs(jobs.map(j => j.id === job.id ? { ...j, applied: true } : j));
+        alert(data.message);
+      } catch (err) {
+        setError(err.response?.data?.error || 'Application failed');
       }
     }
   };
 
   return (
-    <Container sx={{ py: 5 }}>
-      <Typography variant="h5" gutterBottom>Select Companies (Up to 10)</Typography>
+    <Container sx={{ py: 5, background: '#fff', borderRadius: 2, boxShadow: 1 }}>
+      <Typography variant="h5" sx={{ mb: 3 }}>Apply to Jobs</Typography>
       <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-        <Select
-          multiple
-          value={companies}
-          onChange={(e) => setCompanies(e.target.value.slice(0, 10))}
-          displayEmpty
-          fullWidth
-          sx={{ maxWidth: 300 }}
-        >
-          <MenuItem value="">Select from list</MenuItem>
-          {companyList.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+        <Select value={company} onChange={(e) => setCompany(e.target.value)} displayEmpty sx={{ minWidth: 200 }}>
+          <MenuItem value="">Select Company</MenuItem>
+          {companies.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
         </Select>
-        <TextField
-          label="Or Enter Manually"
-          value={manualCompany}
-          onChange={(e) => setManualCompany(e.target.value)}
-          sx={{ flexGrow: 1 }}
-        />
-        <Button variant="contained" onClick={handleAddCompany} disabled={companies.length >= 10}>
-          Add
-        </Button>
+        <TextField label="Or Enter Manually" value={manualCompany} onChange={(e) => setManualCompany(e.target.value)} sx={{ flexGrow: 1 }} />
+        <Button variant="contained" onClick={() => verifyCompany(manualCompany || company)}>Fetch Jobs</Button>
       </Box>
-      <Box sx={{ mb: 3 }}>
-        {companies.map((c, i) => (
-          <Chip key={i} label={c} onDelete={() => setCompanies(companies.filter(comp => comp !== c))} sx={{ mr: 1 }} />
-        ))}
-      </Box>
-      <Button variant="contained" onClick={handleDetectAndProceed} disabled={companies.length === 0}>
-        DETECT & PROCEED
-      </Button>
+      {error && <Typography color="error" sx={{ mb: 2 }}>{error}</Typography>}
       {jobs.length > 0 && (
-        <Box sx={{ mt: 3 }}>
-          <Typography variant="h6" gutterBottom>Available Jobs</Typography>
+        <Box>
+          <Typography variant="h6" sx={{ mb: 2 }}>Available Jobs</Typography>
           {jobs.map(job => (
-            <Box key={job.id} sx={{ p: 2, border: '1px solid #e0e0e0', mb: 2, borderRadius: 2 }}>
-              <Typography>{job.title} - {job.company}</Typography>
+            <Box key={job.id} sx={{ p: 2, border: '1px solid #e0e0e0', mb: 2, borderRadius: 1 }}>
+              <Typography>{job.title}</Typography>
               <Typography variant="body2"><a href={job.link} target="_blank" rel="noopener noreferrer">{job.link}</a></Typography>
-              <Button
-                variant="contained"
-                color={job.applied ? 'secondary' : 'primary'}
-                onClick={() => job.requiresDocs ? setSelectedJob(job) : handleDetectAndProceed()}
-                disabled={job.applied}
-                sx={{ mt: 1 }}
-              >
+              <Button variant="contained" onClick={() => handleApply(job)} disabled={job.applied} sx={{ mt: 1 }}>
                 {job.applied ? 'Applied' : 'Apply Now'}
               </Button>
             </Box>

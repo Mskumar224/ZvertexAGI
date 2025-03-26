@@ -13,8 +13,8 @@ async function parseResume(file) {
     text = file.data.toString('utf8').toLowerCase();
   }
 
-  const keywords = ['javascript', 'python', 'react', 'node', 'java', 'sql', 'aws', 'docker'].filter((kw) => text.includes(kw));
-  return keywords.length > 0 ? keywords : ['Add manually'];
+  const keywords = ['javascript', 'python', 'react', 'node', 'java', 'sql', 'aws', 'docker', 'typescript', 'kotlin'].filter(kw => text.includes(kw));
+  return keywords.length > 0 ? keywords : [];
 }
 
 module.exports = { parseResume };

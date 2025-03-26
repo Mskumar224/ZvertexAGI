@@ -1,9 +1,9 @@
 const mongoose = require('mongoose');
 
 const jobSchema = new mongoose.Schema({
+  jobId: String,
   title: String,
   company: String,
-  jobId: String,
   link: String,
   applied: { type: Boolean, default: false },
   requiresDocs: Boolean,
