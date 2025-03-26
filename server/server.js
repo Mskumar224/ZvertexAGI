@@ -21,8 +21,18 @@ const corsOptions = {
   optionsSuccessStatus: 200,
 };
 
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
+// Apply CORS to all routes, including errors
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', corsOptions.origin.includes(req.headers.origin) ? req.headers.origin : null);
+  res.header('Access-Control-Allow-Methods', corsOptions.methods.join(','));
+  res.header('Access-Control-Allow-Headers', corsOptions.allowedHeaders.join(','));
+  res.header('Access-Control-Allow-Credentials', 'true');
+  if (req.method === 'OPTIONS') {
+    return res.status(corsOptions.optionsSuccessStatus).end();
+  }
+  next();
+});
+
 app.use(express.json());
 app.use(fileUpload());
 
@@ -31,6 +41,13 @@ app.use('/api/subscription', subscriptionRoutes);
 app.use('/api/job', jobRoutes);
 
 app.get('/test', (req, res) => res.send('Server is alive'));
+
+// Global error handler to ensure CORS headers on errors
+app.use((err, req, res, next) => {
+  console.error('Server Error:', err.message);
+  res.header('Access-Control-Allow-Origin', corsOptions.origin.includes(req.headers.origin) ? req.headers.origin : null);
+  res.status(500).json({ error: 'Internal server error', details: err.message });
+});
 
 const mongoUri = process.env.MONGO_URI;
 if (!mongoUri) {
