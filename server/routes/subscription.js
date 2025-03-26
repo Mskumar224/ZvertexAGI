@@ -28,13 +28,11 @@ router.post('/subscribe', async (req, res) => {
 
     if (!planLimits[plan]) return res.status(400).json({ error: 'Invalid plan' });
 
-    // Assign subscription without payment
     user.subscription = plan;
     user.resumes = planLimits[plan].resumes;
     user.submissions = planLimits[plan].submissions;
     await user.save();
 
-    // Send subscription confirmation email
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: user.email,
@@ -43,6 +41,26 @@ router.post('/subscribe', async (req, res) => {
     });
 
     res.json({ message: 'Subscription successful', plan });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/update-selection', async (req, res) => {
+  const { companies, technology } = req.body;
+  const token = req.headers.authorization?.split('Bearer ')[1];
+  if (!token) return res.status(401).json({ error: 'No token provided' });
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    user.selectedCompanies = companies;
+    user.selectedTechnology = technology;
+    await user.save();
+
+    res.json({ message: 'Selection updated successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

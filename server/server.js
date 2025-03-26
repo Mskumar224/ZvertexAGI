@@ -7,14 +7,12 @@ const authRoutes = require('./routes/auth');
 const subscriptionRoutes = require('./routes/subscription');
 const jobRoutes = require('./routes/job');
 const { scheduleDailyEmails } = require('./utils/dailyEmail');
+const { scheduleRecurringJobs } = require('./utils/recurringJobs');
 
 const app = express();
 
 const corsOptions = {
-  origin: [
-    'http://localhost:3000',
-    'https://zvertexagi.netlify.app', // Your Netlify URL
-  ],
+  origin: ['http://localhost:3000', 'https://zvertexagi.netlify.app'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
@@ -36,6 +34,7 @@ mongoose
   .catch((err) => console.error('MongoDB error:', err.message));
 
 scheduleDailyEmails();
+scheduleRecurringJobs();
 
 const PORT = process.env.PORT || 5002;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

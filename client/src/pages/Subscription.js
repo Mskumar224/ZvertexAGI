@@ -49,7 +49,7 @@ function Subscription() {
           <Grid item key={plan.title}>
             <SubscriptionCard
               title={plan.title}
-              price={plan.price} // Display price for transparency, but no payment needed
+              price={plan.price}
               resumes={plan.resumes}
               submissions={plan.submissions}
               description={`${plan.description} (Free Access)`}

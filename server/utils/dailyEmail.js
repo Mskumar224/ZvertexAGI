@@ -8,7 +8,7 @@ const transporter = nodemailer.createTransport({
 });
 
 function scheduleDailyEmails() {
-  cron.schedule('0 8 * * *', async () => { // 8 AM daily
+  cron.schedule('0 8 * * *', async () => {
     const users = await User.find().populate('jobsApplied');
     for (const user of users) {
       const todayJobs = user.jobsApplied.filter(job => {

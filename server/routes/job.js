@@ -30,38 +30,33 @@ router.post('/upload-resume', async (req, res) => {
   }
 });
 
-router.post('/verify-company', async (req, res) => {
-  const { company } = req.body;
-  try {
-    const response = await axios.get(`https://www.google.com/search?q=${encodeURIComponent(company + ' official website')}`);
-    if (response.status === 200) {
-      res.json({ valid: true, website: `https://${company.toLowerCase().replace(/\s+/g, '')}.com` }); // Simplified
-    } else {
-      res.json({ valid: false });
+router.post('/verify-companies', async (req, res) => {
+  const { companies } = req.body;
+  const results = await Promise.all(companies.map(async (company) => {
+    try {
+      const response = await axios.get(`https://www.google.com/search?q=${encodeURIComponent(company + ' official website')}`);
+      return { name: company, valid: response.status === 200, website: `https://${company.toLowerCase().replace(/\s+/g, '')}.com` };
+    } catch (error) {
+      return { name: company, valid: false };
     }
-  } catch (error) {
-    res.json({ valid: false });
-  }
+  }));
+  res.json({ companies: results });
 });
 
 router.post('/fetch-jobs', async (req, res) => {
-  const { company, keywords } = req.body;
+  const { companies, technology } = req.body;
   const token = req.headers.authorization?.split('Bearer ')[1];
   const decoded = jwt.verify(token, JWT_SECRET);
   const user = await User.findById(decoded.id);
 
-  // Mock jobs (replace with real API in production)
-  const jobs = [
-    { id: `${company}-1`, title: `Software Engineer at ${company}`, company, link: `https://${company.toLowerCase().replace(/\s+/g, '')}.com/jobs/1`, requiresDocs: false },
-    { id: `${company}-2`, title: `Data Analyst at ${company}`, company, link: `https://${company.toLowerCase().replace(/\s+/g, '')}.com/jobs/2`, requiresDocs: true },
-  ];
+  const jobs = companies.flatMap(company => [
+    { id: `${company}-1`, title: `${technology} Engineer at ${company}`, company, link: `https://${company.toLowerCase().replace(/\s+/g, '')}.com/jobs/1`, requiresDocs: false },
+    { id: `${company}-2`, title: `${technology} Analyst at ${company}`, company, link: `https://${company.toLowerCase().replace(/\s+/g, '')}.com/jobs/2`, requiresDocs: true },
+  ]);
 
   const appliedJobs = await Job.find({ user: user._id }).select('jobId');
   const appliedIds = appliedJobs.map(job => job.jobId);
-  const availableJobs = jobs.map(job => ({
-    ...job,
-    applied: appliedIds.includes(job.id),
-  }));
+  const availableJobs = jobs.map(job => ({ ...job, applied: appliedIds.includes(job.id) }));
 
   res.json({ jobs: availableJobs });
 });
