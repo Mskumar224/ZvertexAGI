@@ -24,9 +24,10 @@ function JobApply({ keywords, maxResumes, maxSubmissions }) {
         { companies, keywords },
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
+      console.log('Jobs Fetched:', data.jobs);
       setJobs(data.jobs);
     } catch (error) {
-      console.error('Fetch Jobs Error:', error);
+      console.error('Fetch Jobs Error:', error.response?.data || error.message);
     }
   };
 
@@ -35,12 +36,17 @@ function JobApply({ keywords, maxResumes, maxSubmissions }) {
     for (const job of jobs) {
       if (!job.applied) {
         if (!job.requiresDocs) {
-          await axios.post(
-            `${process.env.REACT_APP_API_URL}/api/job/apply`,
-            { jobId: job.id, company: job.company, title: job.title, link: job.link, requiresDocs: false },
-            { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
-          );
-          setJobs(jobs.map(j => j.id === job.id ? { ...j, applied: true } : j));
+          try {
+            const { data } = await axios.post(
+              `${process.env.REACT_APP_API_URL}/api/job/apply`,
+              { jobId: job.id, company: job.company, title: job.title, link: job.link, requiresDocs: false },
+              { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+            );
+            setJobs(jobs.map(j => j.id === job.id ? { ...j, applied: true } : j));
+            console.log('Applied to job:', job.id);
+          } catch (error) {
+            console.error('Apply Error:', error.response?.data || error.message);
+          }
         } else {
           setSelectedJob(job);
           break;

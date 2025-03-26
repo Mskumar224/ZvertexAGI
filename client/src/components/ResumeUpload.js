@@ -26,11 +26,12 @@ function ResumeUpload({ onResumeParsed }) {
           'Content-Type': 'multipart/form-data',
         },
       });
+      console.log('Resume Upload Success:', data.keywords);
       setTechs(data.keywords);
       onResumeParsed(data.keywords);
       setError(null);
     } catch (err) {
-      console.error('Resume Upload Failed:', err);
+      console.error('Resume Upload Failed:', err.response?.data || err.message);
       setError(err.response?.data?.error || 'Resume upload failed');
     }
   };
@@ -66,6 +67,7 @@ function ResumeUpload({ onResumeParsed }) {
       {techs.length > 0 && (
         <Box sx={{ mt: 2 }}>
           <Typography>Suggested Technologies:</Typography>
+          <Typography>{techs.join(', ')}</Typography>
           <Select
             multiple
             value={techs}

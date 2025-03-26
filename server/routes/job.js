@@ -5,10 +5,8 @@ const Job = require('../models/Job');
 const jwt = require('jsonwebtoken');
 const { parseResume } = require('../utils/resumeParser');
 const { sendJobAppliedEmail } = require('../utils/dailyEmail');
-const axios = require('axios');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
-const axiosInstance = axios.create({ timeout: 10000 });
 
 router.post('/upload-resume', async (req, res) => {
   const token = req.headers.authorization?.split('Bearer ')[1];
@@ -18,9 +16,7 @@ router.post('/upload-resume', async (req, res) => {
     fileName: req.files?.resume?.name,
   });
 
-  if (!token) {
-    return res.status(401).json({ error: 'No token provided' });
-  }
+  if (!token) return res.status(401).json({ error: 'No token provided' });
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
@@ -45,43 +41,21 @@ router.post('/upload-resume', async (req, res) => {
   }
 });
 
-router.get('/tracker', async (req, res) => {
-  const token = req.headers.authorization?.split('Bearer ')[1];
-  if (!token) return res.status(401).json({ error: 'No token provided' });
-
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const user = await User.findById(decoded.id).populate('jobsApplied');
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    const jobs = user.jobsApplied || [];
-    res.json(jobs);
-  } catch (error) {
-    console.error('Job Tracker Error:', error.message);
-    res.status(500).json({ error: 'Failed to fetch job tracker data' });
-  }
-});
-
 router.post('/fetch-jobs', async (req, res) => {
   const { companies, keywords } = req.body;
+  console.log('Fetch Jobs Request:', { companies, keywords });
+
   try {
-    const jobs = [];
-    for (const company of companies) {
-      try {
-        const response = await axiosInstance.get(
-          `https://api.example.com/jobs?company=${encodeURIComponent(company)}&keywords=${encodeURIComponent(keywords.join(','))}`
-        );
-        jobs.push(...response.data.map(job => ({
-          id: job.id,
-          title: job.title,
-          company,
-          link: job.url,
-          applied: false,
-          requiresDocs: job.requiresDocs || false,
-        })));
-      } catch (error) {
-        console.error(`Failed to fetch jobs for ${company}:`, error.message);
-      }
-    }
+    // Simulate job fetching (replace with real API later)
+    const jobs = companies.map((company, index) => ({
+      id: `job-${index}-${Date.now()}`,
+      title: `Software Engineer - ${company}`,
+      company,
+      link: `https://${company.toLowerCase()}.com/careers`,
+      applied: false,
+      requiresDocs: index % 2 === 0, // Alternate for testing
+    }));
+    console.log('Jobs Fetched:', jobs);
     res.json({ jobs });
   } catch (error) {
     console.error('Fetch Jobs Error:', error.message);
@@ -92,6 +66,8 @@ router.post('/fetch-jobs', async (req, res) => {
 router.post('/apply', async (req, res) => {
   const { jobId, company, title, link, requiresDocs } = req.body;
   const token = req.headers.authorization?.split('Bearer ')[1];
+  console.log('Apply Job Request:', { jobId, company });
+
   if (!token) return res.status(401).json({ error: 'No token provided' });
 
   try {
@@ -119,10 +95,30 @@ router.post('/apply', async (req, res) => {
       await sendJobAppliedEmail(user.email, job);
     }
 
+    console.log('Job Applied:', { jobId, company });
     res.json({ message: requiresDocs ? 'Documents required' : `Applied to job ${jobId}`, job });
   } catch (error) {
     console.error('Job Apply Error:', error.message);
-    res.status(500).json({ error: 'Failed to apply to job' });
+    res.status(500).json({ error: 'Failed to apply to job', details: error.message });
+  }
+});
+
+router.get('/tracker', async (req, res) => {
+  const token = req.headers.authorization?.split('Bearer ')[1];
+  console.log('Tracker Request:', { tokenProvided: !!token });
+
+  if (!token) return res.status(401).json({ error: 'No token provided' });
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.id).populate('jobsApplied');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const jobs = user.jobsApplied || [];
+    console.log('Tracker Response:', jobs);
+    res.json(jobs);
+  } catch (error) {
+    console.error('Job Tracker Error:', error.message);
+    res.status(500).json({ error: 'Failed to fetch job tracker data', details: error.message });
   }
 });
 
