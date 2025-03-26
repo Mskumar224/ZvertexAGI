@@ -10,8 +10,9 @@ const NodeCache = require('node-cache');
 const serpApi = require('google-search-results-nodejs');
 
 const JWT_SECRET = process.env.JWT_SECRET;
+const SERPAPI_KEY = process.env.SERPAPI_KEY; // Ensure this is set in .env
 const jobCache = new NodeCache({ stdTTL: 600 }); // Cache for 10 minutes
-const search = new serpApi.GoogleSearch(process.env.SERPAPI_KEY);
+const search = SERPAPI_KEY ? new serpApi.GoogleSearch(SERPAPI_KEY) : null;
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: { user: 'zvertexai@honotech.com', pass: 'qnfz cudq ytwe vjwp' },
@@ -24,11 +25,9 @@ router.post('/upload-resume', async (req, res) => {
   }
 
   try {
-    // Validate token presence and basic format
     if (!token || typeof token !== 'string' || !token.trim()) {
       return res.status(401).json({ error: 'No valid authentication token provided' });
     }
-
     let decoded;
     try {
       decoded = jwt.verify(token, JWT_SECRET);
@@ -83,6 +82,7 @@ router.post('/fetch-jobs', async (req, res) => {
   const { companies, technology } = req.body;
   const token = req.headers.authorization?.split('Bearer ')[1];
 
+  // Validate inputs
   if (!companies || !Array.isArray(companies) || !technology) {
     return res.status(400).json({ error: 'Companies (array) and technology are required' });
   }
@@ -91,6 +91,7 @@ router.post('/fetch-jobs', async (req, res) => {
   }
 
   try {
+    // Verify token
     const decoded = jwt.verify(token, JWT_SECRET);
     const user = await User.findById(decoded.id);
     if (!user) {
@@ -101,21 +102,39 @@ router.post('/fetch-jobs', async (req, res) => {
     const cachedJobs = jobCache.get(cacheKey);
     if (cachedJobs) return res.json({ jobs: cachedJobs });
 
-    const jobs = await Promise.all(companies.map(async company => {
+    // Check for SerpApi key
+    if (!SERPAPI_KEY || !search) {
+      console.error('SerpApi key missing in /fetch-jobs');
+      return res.status(503).json({ error: 'Job search service unavailable due to missing API key. Please contact support.' });
+    }
+
+    const jobs = await Promise.all(companies.map(async (company) => {
       return new Promise((resolve) => {
-        search.json({
-          q: `${technology} jobs at ${company} site:${company.toLowerCase().replace(/\s+/g, '')}.com`,
-          location: 'United States',
-        }, (result) => {
-          const job = result.organic_results?.[0] || {};
+        try {
+          search.json({
+            q: `${technology} jobs at ${company} site:${company.toLowerCase().replace(/\s+/g, '')}.com`,
+            location: 'United States',
+          }, (result) => {
+            const job = result.organic_results?.[0] || {};
+            resolve({
+              id: `${company}-${Date.now()}`,
+              title: job.title || `${technology} Engineer at ${company}`,
+              company,
+              link: job.link || `https://${company.toLowerCase().replace(/\s+/g, '')}.com/jobs/${Date.now()}`,
+              requiresDocs: false,
+            });
+          });
+        } catch (searchError) {
+          console.error(`SerpApi error for ${company} in /fetch-jobs:`, searchError.message);
           resolve({
             id: `${company}-${Date.now()}`,
-            title: job.title || `${technology} Engineer at ${company}`,
+            title: `${technology} Engineer at ${company}`,
             company,
-            link: job.link || `https://${company.toLowerCase().replace(/\s+/g, '')}.com/jobs/${Date.now()}`,
+            link: `https://${company.toLowerCase().replace(/\s+/g, '')}.com/jobs`,
             requiresDocs: false,
+            error: 'Failed to fetch job details from SerpApi',
           });
-        });
+        }
       });
     }));
 
