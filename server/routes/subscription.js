@@ -1,24 +1,19 @@
 const express = require('express');
 const router = express.Router();
-const Stripe = require('stripe');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { sendSubscriptionEmail } = require('../server');
 
-const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 
 router.post('/subscribe', async (req, res) => {
-  const { paymentMethodId, plan } = req.body;
+  const { plan } = req.body;
   const token = req.headers.authorization?.split('Bearer ')[1];
 
-  console.log('Subscription Request:', { paymentMethodId, plan, tokenProvided: !!token });
+  console.log('Subscription Request:', { plan, tokenProvided: !!token });
 
   if (!token) {
     return res.status(401).json({ error: 'No authentication token provided' });
-  }
-  if (!paymentMethodId) {
-    return res.status(400).json({ error: 'Missing paymentMethodId' });
   }
   if (!plan) {
     return res.status(400).json({ error: 'Missing plan' });
@@ -31,43 +26,16 @@ router.post('/subscribe', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const planPriceMap = {
-      STUDENT: 'price_xxxxxxxxxxxxxx', // Replace with actual Stripe Price IDs
-      RECRUITER: 'price_yyyyyyyyyyyy',
-      BUSINESS: 'price_zzzzzzzzzzzz',
-    };
-    const priceId = planPriceMap[plan];
-    if (!priceId) {
-      return res.status(400).json({ error: `Invalid plan: ${plan}` });
-    }
-
-    let customer = await stripe.customers.list({ email: user.email });
-    if (!customer.data.length) {
-      customer = await stripe.customers.create({
-        email: user.email,
-        payment_method: paymentMethodId,
-        invoice_settings: { default_payment_method: paymentMethodId },
-      });
-    } else {
-      customer = customer.data[0];
-      await stripe.paymentMethods.attach(paymentMethodId, { customer: customer.id });
-      await stripe.customers.update(customer.id, {
-        invoice_settings: { default_payment_method: paymentMethodId },
-      });
-    }
-
-    const subscription = await stripe.subscriptions.create({
-      customer: customer.id,
-      items: [{ price: priceId }],
-      payment_behavior: 'default_incomplete',
-      expand: ['latest_invoice.payment_intent'],
-    });
-
     const planLimits = {
       STUDENT: { resumes: 1, submissions: 45 },
       RECRUITER: { resumes: 5, submissions: 45 },
       BUSINESS: { resumes: 3, submissions: 145 },
     };
+
+    if (!planLimits[plan]) {
+      return res.status(400).json({ error: `Invalid plan: ${plan}` });
+    }
+
     user.subscription = plan;
     user.resumes = planLimits[plan].resumes;
     user.submissions = planLimits[plan].submissions;
@@ -75,18 +43,10 @@ router.post('/subscribe', async (req, res) => {
 
     await sendSubscriptionEmail(user.email, plan);
 
-    const paymentIntent = subscription.latest_invoice.payment_intent;
-    if (paymentIntent.status === 'requires_action' || paymentIntent.status === 'requires_confirmation') {
-      return res.status(200).json({
-        subscriptionId: subscription.id,
-        clientSecret: paymentIntent.client_secret,
-      });
-    }
-
-    res.status(200).json({ message: 'Subscription successful', subscriptionId: subscription.id });
+    res.status(200).json({ message: 'Subscription successful' });
   } catch (error) {
-    console.error('Stripe Subscription Error:', error.message);
-    res.status(400).json({ error: error.message || 'An error occurred during subscription processing' });
+    console.error('Subscription Error:', error.message);
+    res.status(500).json({ error: error.message || 'An error occurred during subscription processing' });
   }
 });
 

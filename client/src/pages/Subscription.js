@@ -1,16 +1,13 @@
 import React, { useState } from 'react';
 import { Container, Typography, Grid, Box, CircularProgress } from '@mui/material';
-import { useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
 import SubscriptionCard from '../components/SubscriptionCard';
 import axios from 'axios';
 import { useHistory } from 'react-router-dom';
 
 function Subscription() {
-  const stripe = useStripe();
-  const elements = useElements();
   const history = useHistory();
-  const [paymentError, setPaymentError] = useState(null);
-  const [paymentProcessing, setPaymentProcessing] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState(null);
 
   const plans = [
     { title: 'STUDENT', price: 39, resumes: 1, submissions: 45, description: 'Perfect for students starting their career.' },
@@ -19,67 +16,35 @@ function Subscription() {
   ];
 
   const handleSubscription = async (plan) => {
-    setPaymentError(null);
-    setPaymentProcessing(true);
-
-    if (!stripe || !elements) {
-      setPaymentError('Stripe has not loaded. Please try again.');
-      setPaymentProcessing(false);
-      return;
-    }
-
-    const cardElement = elements.getElement(CardElement);
-    if (!cardElement) {
-      setPaymentError('Card input not found. Please refresh the page.');
-      setPaymentProcessing(false);
-      return;
-    }
+    setError(null);
+    setProcessing(true);
 
     const token = localStorage.getItem('token');
     if (!token) {
-      setPaymentError('You must be logged in to subscribe.');
-      setPaymentProcessing(false);
+      setError('You must be logged in to subscribe.');
+      setProcessing(false);
       history.push('/login');
       return;
     }
 
     try {
-      // Create payment method
-      const { paymentMethod, error } = await stripe.createPaymentMethod({
-        type: 'card',
-        card: cardElement,
-      });
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      if (!paymentMethod || !paymentMethod.id) {
-        throw new Error('Failed to create payment method.');
-      }
-
-      // Make subscription request
       const response = await axios.post(
         `${process.env.REACT_APP_API_URL}/api/subscription/subscribe`,
-        { paymentMethodId: paymentMethod.id, plan: plan.title },
+        { plan: plan.title },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       console.log('Subscription response:', response.data);
 
-      if (response.data.clientSecret) {
-        const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(response.data.clientSecret);
-        if (confirmError) throw new Error(confirmError.message);
-        if (paymentIntent.status === 'succeeded') redirectToDashboard(plan.title);
-      } else if (response.data.message === 'Subscription successful') {
+      if (response.data.message === 'Subscription successful') {
         redirectToDashboard(plan.title);
       }
     } catch (err) {
       const errorMessage = err.response?.data?.error || err.message || 'An unexpected error occurred';
       console.error('Subscription Error:', errorMessage);
-      setPaymentError(`Subscription failed: ${errorMessage}`);
+      setError(`Subscription failed: ${errorMessage}`);
     } finally {
-      setPaymentProcessing(false);
+      setProcessing(false);
     }
   };
 
@@ -110,26 +75,21 @@ function Subscription() {
               submissions={plan.submissions}
               description={plan.description}
               onSelect={() => handleSubscription(plan)}
-              disabled={paymentProcessing || !stripe || !elements}
+              disabled={processing}
             />
           </Grid>
         ))}
       </Grid>
-      {stripe && elements ? (
-        <Box sx={{ mt: 5, maxWidth: 400, mx: 'auto' }}>
-          <CardElement options={{ style: { base: { fontSize: '16px' } } }} />
-          {paymentError && <Typography color="error" sx={{ mt: 2 }}>{paymentError}</Typography>}
-          {paymentProcessing && (
-            <Box sx={{ mt: 2, textAlign: 'center' }}>
-              <CircularProgress size={24} />
-              <Typography>Processing payment...</Typography>
-            </Box>
-          )}
-        </Box>
-      ) : (
+      {error && (
         <Typography color="error" align="center" sx={{ mt: 5 }}>
-          Stripe failed to load. Please refresh the page.
+          {error}
         </Typography>
+      )}
+      {processing && (
+        <Box sx={{ mt: 5, textAlign: 'center' }}>
+          <CircularProgress size={24} />
+          <Typography>Processing subscription...</Typography>
+        </Box>
       )}
     </Container>
   );
