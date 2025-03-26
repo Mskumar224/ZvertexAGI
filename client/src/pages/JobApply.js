@@ -5,6 +5,7 @@ import DocumentUpload from '../components/DocumentUpload';
 
 function JobApply({ keywords, maxResumes, maxSubmissions }) {
   const [selectedTech, setSelectedTech] = useState('');
+  const [manualTech, setManualTech] = useState(''); // For manual tech entry
   const [companies, setCompanies] = useState([]);
   const [manualCompany, setManualCompany] = useState('');
   const [jobs, setJobs] = useState([]);
@@ -17,12 +18,11 @@ function JobApply({ keywords, maxResumes, maxSubmissions }) {
   ];
 
   const companyOptions = [
-    'Google', 'Microsoft', 'Amazon', 'Apple', 'Facebook', 'Tesla', 'IBM', 'Oracle', 'Intel', 'Cisco',
-    'Adobe', 'Salesforce', 'Netflix', 'Spotify', 'Uber', 'Lyft', 'Airbnb', 'Dropbox', 'Slack', 'Zoom',
-    'Twitter', 'LinkedIn', 'PayPal', 'Square', 'Stripe', 'Shopify', 'Etsy', 'Pinterest', 'Reddit', 'Snapchat',
-    'TikTok', 'Twitch', 'Discord', 'Robinhood', 'Coinbase', 'Goldman Sachs', 'JPMorgan', 'Morgan Stanley',
-    'Bank of America', 'Walmart', 'Target', 'Home Depot', 'Boeing', 'Lockheed Martin', 'SpaceX', 'General Motors',
-    'Ford', 'Toyota', 'Samsung'
+    'HubSpot', 'Zoho', 'Okta', 'PagerDuty', 'Twilio', 'Asana', 'Zapier', 'Freshworks', 'Pipedrive', 'GitLab',
+    'Atlassian', 'ServiceNow', 'Splunk', 'Datadog', 'New Relic', 'monday.com', 'Trello', 'Wrike', 'ClickUp', 'Basecamp',
+    'Smartsheet', 'Domo', 'Tableau', 'Looker', 'Sisense', 'Qualtrics', 'SurveyMonkey', 'Zendesk', 'Intercom', 'Drift',
+    'Mailchimp', 'SendGrid', 'Constant Contact', 'ActiveCampaign', 'Campaign Monitor', 'Hootsuite', 'Sprout Social',
+    'Buffer', 'Canva', 'Figma', 'InVision', 'Sketch', 'Lucidchart', 'Miro', 'Airtable', 'Notion', 'Coda', 'Quip'
   ];
 
   const handleCompanyChange = (event) => {
@@ -35,24 +35,25 @@ function JobApply({ keywords, maxResumes, maxSubmissions }) {
     const allCompanies = [...companies, ...(manualCompany ? [manualCompany] : [])];
     if (allCompanies.length === 0) return setError('Select at least one company');
     if (allCompanies.length > 15) return setError('Maximum 15 companies allowed');
-    if (!selectedTech) return setError('Select a technology');
+    const techToUse = manualTech || selectedTech;
+    if (!techToUse) return setError('Select or enter a technology');
 
     try {
       const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/api/job/verify-companies`, { companies: allCompanies });
       const validCompanies = data.companies.filter(c => c.valid).map(c => c.name);
       if (validCompanies.length === 0) return setError('No valid companies detected');
       setCompanies(validCompanies);
-      fetchJobs(validCompanies);
+      fetchJobs(validCompanies, techToUse);
     } catch (err) {
       setError('Company verification failed');
     }
   };
 
-  const fetchJobs = async (validCompanies) => {
+  const fetchJobs = async (validCompanies, tech) => {
     try {
       const { data } = await axios.post(
         `${process.env.REACT_APP_API_URL}/api/job/fetch-jobs`,
-        { companies: validCompanies, technology: selectedTech },
+        { companies: validCompanies, technology: tech },
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
       setJobs(data.jobs);
@@ -60,7 +61,7 @@ function JobApply({ keywords, maxResumes, maxSubmissions }) {
 
       await axios.post(
         `${process.env.REACT_APP_API_URL}/api/subscription/update-selection`,
-        { companies: validCompanies, technology: selectedTech },
+        { companies: validCompanies, technology: tech },
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
     } catch (err) {
@@ -91,7 +92,7 @@ function JobApply({ keywords, maxResumes, maxSubmissions }) {
     <Container sx={{ py: 5, background: '#fff', borderRadius: 2, boxShadow: 1 }}>
       <Typography variant="h5" sx={{ mb: 3 }}>Apply to Jobs</Typography>
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h6">Select One Technology</Typography>
+        <Typography variant="h6">Select or Enter Technology</Typography>
         <Select
           value={selectedTech}
           onChange={(e) => setSelectedTech(e.target.value)}
@@ -101,6 +102,12 @@ function JobApply({ keywords, maxResumes, maxSubmissions }) {
           <MenuItem value="">Choose Technology</MenuItem>
           {techOptions.map(tech => <MenuItem key={tech} value={tech}>{tech}</MenuItem>)}
         </Select>
+        <TextField
+          label="Or Enter Technology Manually"
+          value={manualTech}
+          onChange={(e) => setManualTech(e.target.value)}
+          sx={{ ml: 2, minWidth: 200 }}
+        />
       </Box>
       <Box sx={{ mb: 3 }}>
         <Typography variant="h6">Select Companies (Up to 15)</Typography>
