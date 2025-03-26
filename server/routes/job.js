@@ -33,9 +33,9 @@ router.post('/upload-resume', async (req, res) => {
 router.post('/verify-company', async (req, res) => {
   const { company } = req.body;
   try {
-    const response = await axios.get(`https://www.google.com/search?q=${company}+official+website`);
+    const response = await axios.get(`https://www.google.com/search?q=${encodeURIComponent(company + ' official website')}`);
     if (response.status === 200) {
-      res.json({ valid: true, website: `https://${company.toLowerCase()}.com` }); // Simplified detection
+      res.json({ valid: true, website: `https://${company.toLowerCase().replace(/\s+/g, '')}.com` }); // Simplified
     } else {
       res.json({ valid: false });
     }
@@ -46,12 +46,24 @@ router.post('/verify-company', async (req, res) => {
 
 router.post('/fetch-jobs', async (req, res) => {
   const { company, keywords } = req.body;
-  // Mock job data (replace with real job API like Indeed in production)
+  const token = req.headers.authorization?.split('Bearer ')[1];
+  const decoded = jwt.verify(token, JWT_SECRET);
+  const user = await User.findById(decoded.id);
+
+  // Mock jobs (replace with real API in production)
   const jobs = [
-    { id: `${company}-1`, title: `Software Engineer at ${company}`, company, link: `https://${company.toLowerCase()}.com/jobs/1`, requiresDocs: false },
-    { id: `${company}-2`, title: `Data Analyst at ${company}`, company, link: `https://${company.toLowerCase()}.com/jobs/2`, requiresDocs: true },
+    { id: `${company}-1`, title: `Software Engineer at ${company}`, company, link: `https://${company.toLowerCase().replace(/\s+/g, '')}.com/jobs/1`, requiresDocs: false },
+    { id: `${company}-2`, title: `Data Analyst at ${company}`, company, link: `https://${company.toLowerCase().replace(/\s+/g, '')}.com/jobs/2`, requiresDocs: true },
   ];
-  res.json({ jobs });
+
+  const appliedJobs = await Job.find({ user: user._id }).select('jobId');
+  const appliedIds = appliedJobs.map(job => job.jobId);
+  const availableJobs = jobs.map(job => ({
+    ...job,
+    applied: appliedIds.includes(job.id),
+  }));
+
+  res.json({ jobs: availableJobs });
 });
 
 router.post('/apply', async (req, res) => {
@@ -75,7 +87,7 @@ router.post('/apply', async (req, res) => {
       from: process.env.EMAIL_USER,
       to: user.email,
       subject: 'Job Application Confirmation',
-      text: `You’ve applied to ${title} at ${company}. Job ID: ${jobId}. View it here: ${link}`,
+      text: `You’ve applied to ${title} at ${company}. Job ID: ${jobId}. View details: ${link}`,
     });
 
     res.json({ message: 'Applied successfully', job });

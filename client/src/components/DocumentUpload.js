@@ -7,33 +7,37 @@ function DocumentUpload({ job, onClose }) {
 
   const handleUpload = async () => {
     const formData = new FormData();
-    formData.append('document', file);
     formData.append('jobId', job.id);
+    formData.append('company', job.company);
+    formData.append('title', job.title);
+    formData.append('link', job.link);
+    formData.append('requiresDocs', job.requiresDocs);
+    if (file) formData.append('document', file);
 
     try {
-      await axios.post(`${process.env.REACT_APP_API_URL}/api/job/apply`, formData, {
+      const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/api/job/apply`, formData, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'multipart/form-data' },
       });
-      alert('Application submitted with documents!');
+      alert(data.message);
       onClose();
     } catch (error) {
-      console.error('Document Upload Error:', error);
+      alert('Document upload failed');
     }
   };
 
   return (
     <Dialog open={true} onClose={onClose}>
-      <DialogTitle>Upload Additional Documents for {job.title}</DialogTitle>
+      <DialogTitle>Upload Documents for {job.title}</DialogTitle>
       <DialogContent>
         <Typography>Upload required documents or apply manually:</Typography>
         <input type="file" onChange={(e) => setFile(e.target.files[0])} style={{ marginTop: '16px' }} />
         <Typography sx={{ mt: 2 }}>
-          Alternatively, <a href={job.link} target="_blank" rel="noopener noreferrer">apply manually here</a>.
+          Or <a href={job.link} target="_blank" rel="noopener noreferrer">apply manually here</a>.
         </Typography>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
-        <Button variant="contained" onClick={handleUpload} disabled={!file}>Submit</Button>
+        <Button variant="contained" onClick={handleUpload} sx={{ background: '#1976d2' }}>Submit</Button>
       </DialogActions>
     </Dialog>
   );

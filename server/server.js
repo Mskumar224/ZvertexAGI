@@ -12,8 +12,8 @@ const app = express();
 
 const corsOptions = {
   origin: [
-    'http://localhost:3000',            // Local dev
-    'https://zvertexagi.netlify.app',   // Production frontend
+    'http://localhost:3000',
+    'https://zvertexagi.netlify.app', // Your Netlify URL
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],

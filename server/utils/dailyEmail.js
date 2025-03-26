@@ -8,13 +8,13 @@ const transporter = nodemailer.createTransport({
 });
 
 function scheduleDailyEmails() {
-  cron.schedule('0 8 * * *', async () => {
+  cron.schedule('0 8 * * *', async () => { // 8 AM daily
     const users = await User.find().populate('jobsApplied');
     for (const user of users) {
       const todayJobs = user.jobsApplied.filter(job => {
         const jobDate = new Date(job.createdAt);
         const now = new Date();
-        return jobDate.getDate() === now.getDate() - 1;
+        return jobDate.toDateString() === new Date(now.setDate(now.getDate() - 1)).toDateString();
       });
       if (todayJobs.length > 0) {
         const message = `Daily Summary: You applied to ${todayJobs.length} jobs yesterday:\n` +

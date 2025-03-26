@@ -47,6 +47,7 @@ function JobApply({ keywords, maxResumes, maxSubmissions }) {
   };
 
   const handleApply = async (job) => {
+    if (job.applied) return alert('Already applied to this job!');
     if (job.requiresDocs) {
       setSelectedJob(job);
     } else {
@@ -73,7 +74,9 @@ function JobApply({ keywords, maxResumes, maxSubmissions }) {
           {companies.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
         </Select>
         <TextField label="Or Enter Manually" value={manualCompany} onChange={(e) => setManualCompany(e.target.value)} sx={{ flexGrow: 1 }} />
-        <Button variant="contained" onClick={() => verifyCompany(manualCompany || company)}>Fetch Jobs</Button>
+        <Button variant="contained" onClick={() => verifyCompany(manualCompany || company)} sx={{ background: '#1976d2' }}>
+          Fetch Jobs
+        </Button>
       </Box>
       {error && <Typography color="error" sx={{ mb: 2 }}>{error}</Typography>}
       {jobs.length > 0 && (
@@ -83,7 +86,12 @@ function JobApply({ keywords, maxResumes, maxSubmissions }) {
             <Box key={job.id} sx={{ p: 2, border: '1px solid #e0e0e0', mb: 2, borderRadius: 1 }}>
               <Typography>{job.title}</Typography>
               <Typography variant="body2"><a href={job.link} target="_blank" rel="noopener noreferrer">{job.link}</a></Typography>
-              <Button variant="contained" onClick={() => handleApply(job)} disabled={job.applied} sx={{ mt: 1 }}>
+              <Button
+                variant="contained"
+                onClick={() => handleApply(job)}
+                disabled={job.applied}
+                sx={{ mt: 1, background: job.applied ? '#e0e0e0' : '#1976d2', color: job.applied ? '#000' : '#fff' }}
+              >
                 {job.applied ? 'Applied' : 'Apply Now'}
               </Button>
             </Box>
