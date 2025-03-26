@@ -1,11 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const Stripe = require('stripe');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const nodemailer = require('nodemailer');
 
-const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 const JWT_SECRET = process.env.JWT_SECRET;
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -13,7 +11,7 @@ const transporter = nodemailer.createTransport({
 });
 
 router.post('/subscribe', async (req, res) => {
-  const { plan, paymentMethodId } = req.body;
+  const { plan } = req.body;
   const token = req.headers.authorization?.split('Bearer ')[1];
   if (!token) return res.status(401).json({ error: 'No token provided' });
 
@@ -23,22 +21,14 @@ router.post('/subscribe', async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     const planLimits = {
-      STUDENT: { resumes: 1, submissions: 45, priceId: 'price_student_id' },
-      RECRUITER: { resumes: 5, submissions: 45, priceId: 'price_recruiter_id' },
-      BUSINESS: { resumes: 3, submissions: 145, priceId: 'price_business_id' },
+      STUDENT: { resumes: 1, submissions: 45 },
+      RECRUITER: { resumes: 5, submissions: 45 },
+      BUSINESS: { resumes: 3, submissions: 145 },
     };
 
     if (!planLimits[plan]) return res.status(400).json({ error: 'Invalid plan' });
 
-    // Stripe payment (optional for now)
-    if (paymentMethodId) {
-      const customer = await stripe.customers.create({ email: user.email, payment_method: paymentMethodId });
-      await stripe.subscriptions.create({
-        customer: customer.id,
-        items: [{ price: planLimits[plan].priceId }],
-      });
-    }
-
+    // Assign subscription without payment
     user.subscription = plan;
     user.resumes = planLimits[plan].resumes;
     user.submissions = planLimits[plan].submissions;
@@ -49,7 +39,7 @@ router.post('/subscribe', async (req, res) => {
       from: process.env.EMAIL_USER,
       to: user.email,
       subject: 'Welcome to ZvertexAGI!',
-      text: `Thank you for subscribing to the ${plan} plan! You can now upload ${planLimits[plan].resumes} resume(s) and submit up to ${planLimits[plan].submissions} applications per day.`,
+      text: `Thank you for choosing the ${plan} plan! You can now upload ${planLimits[plan].resumes} resume(s) and submit up to ${planLimits[plan].submissions} applications per day - all for free!`,
     });
 
     res.json({ message: 'Subscription successful', plan });

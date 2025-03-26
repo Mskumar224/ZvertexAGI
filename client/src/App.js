@@ -16,7 +16,7 @@ const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
 function App() {
   return (
     <Router>
-      <Elements stripe={stripePromise}>
+      <Elements stripe={stripePromise}> {/* Kept for future Stripe use */}
         <Switch>
           <Route exact path="/" component={Home} />
           <Route path="/signup" component={Signup} />
