@@ -19,7 +19,7 @@ const corsOptions = {
   optionsSuccessStatus: 204, // Standard response for preflight success
 };
 
-// Apply CORS middleware globally (handles preflight OPTIONS requests automatically)
+// Apply CORS middleware first to handle all requests, including preflight
 app.use(cors(corsOptions));
 
 app.use(express.json());

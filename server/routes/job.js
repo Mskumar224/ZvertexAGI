@@ -55,7 +55,7 @@ router.post('/verify-companies', async (req, res) => {
     const results = await Promise.all(companies.map(async (company) => {
       try {
         const response = await axios.get(`https://www.google.com/search?q=${encodeURIComponent(company + ' official website')}`, {
-          timeout: 5000, // Add timeout to prevent hanging
+          timeout: 5000,
         });
         return { name: company, valid: response.status === 200, website: `https://${company.toLowerCase().replace(/\s+/g, '')}.com` };
       } catch (error) {
@@ -73,37 +73,57 @@ router.post('/verify-companies', async (req, res) => {
 router.post('/fetch-jobs', async (req, res) => {
   const { companies, technology } = req.body;
   const token = req.headers.authorization?.split('Bearer ')[1];
-  const decoded = jwt.verify(token, JWT_SECRET);
-  const user = await User.findById(decoded.id);
 
-  const cacheKey = `${user._id}-${companies.join(',')}-${technology}`;
-  const cachedJobs = jobCache.get(cacheKey);
-  if (cachedJobs) return res.json({ jobs: cachedJobs });
+  // Validate inputs
+  if (!companies || !Array.isArray(companies) || !technology) {
+    return res.status(400).json({ error: 'Companies (array) and technology are required' });
+  }
+  if (!token) {
+    return res.status(401).json({ error: 'No authentication token provided' });
+  }
 
-  const jobs = await Promise.all(companies.map(async company => {
-    return new Promise((resolve) => {
-      search.json({
-        q: `${technology} jobs at ${company} site:${company.toLowerCase().replace(/\s+/g, '')}.com`,
-        location: 'United States',
-      }, (result) => {
-        const job = result.organic_results?.[0] || {};
-        resolve({
-          id: `${company}-${Date.now()}`,
-          title: job.title || `${technology} Engineer at ${company}`,
-          company,
-          link: job.link || `https://${company.toLowerCase().replace(/\s+/g, '')}.com/jobs/${Date.now()}`,
-          requiresDocs: false,
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const cacheKey = `${user._id}-${companies.join(',')}-${technology}`;
+    const cachedJobs = jobCache.get(cacheKey);
+    if (cachedJobs) return res.json({ jobs: cachedJobs });
+
+    const jobs = await Promise.all(companies.map(async company => {
+      return new Promise((resolve) => {
+        search.json({
+          q: `${technology} jobs at ${company} site:${company.toLowerCase().replace(/\s+/g, '')}.com`,
+          location: 'United States',
+        }, (result) => {
+          const job = result.organic_results?.[0] || {};
+          resolve({
+            id: `${company}-${Date.now()}`,
+            title: job.title || `${technology} Engineer at ${company}`,
+            company,
+            link: job.link || `https://${company.toLowerCase().replace(/\s+/g, '')}.com/jobs/${Date.now()}`,
+            requiresDocs: false,
+          });
         });
       });
-    });
-  }));
+    }));
 
-  const appliedJobs = await Job.find({ user: user._id }).select('jobId');
-  const appliedIds = appliedJobs.map(job => job.jobId);
-  const availableJobs = jobs.map(job => ({ ...job, applied: appliedIds.includes(job.id) }));
+    const appliedJobs = await Job.find({ user: user._id }).select('jobId');
+    const appliedIds = appliedJobs.map(job => job.jobId);
+    const availableJobs = jobs.map(job => ({ ...job, applied: appliedIds.includes(job.id) }));
 
-  jobCache.set(cacheKey, availableJobs);
-  res.json({ jobs: availableJobs });
+    jobCache.set(cacheKey, availableJobs);
+    res.json({ jobs: availableJobs });
+  } catch (error) {
+    console.error('Error in /fetch-jobs:', error.message);
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+    res.status(500).json({ error: 'Failed to fetch jobs', details: error.message });
+  }
 });
 
 router.post('/apply', async (req, res) => {
