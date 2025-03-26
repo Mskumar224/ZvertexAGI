@@ -1,57 +1,45 @@
 const express = require('express');
 const router = express.Router();
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const User = require('../models/User');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
+// Valid plans for free access
+const validPlans = ['STUDENT', 'RECRUITER', 'BUSINESS'];
+
 router.post('/create-checkout-session', async (req, res) => {
+  const token = req.headers.authorization?.split('Bearer ')[1];
   const { plan } = req.body;
-  const token = req.headers.authorization?.split('Bearer ')[1];
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const user = await User.findById(decoded.id);
-    if (!user) return res.status(404).json({ error: 'User not found' });
 
-    const planDetails = {
-      STUDENT: { priceId: 'price_1NsaXwLmt3YaM34gXvN8iZ5Q', resumes: 1, submissions: 45 },
-      RECRUITER: { priceId: 'price_1NsaYELmt3YaM34gX8K9jL2P', resumes: 5, submissions: 45 },
-      BUSINESS: { priceId: 'price_1NsaYpLmt3YaM34gXvN8iZ5Q', resumes: 3, submissions: 145 },
-    };
-
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: [{ price: planDetails[plan].priceId, quantity: 1 }],
-      mode: 'subscription',
-      success_url: `${process.env.CLIENT_URL}/student-dashboard?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.CLIENT_URL}/subscription`,
-      metadata: { userId: user._id.toString(), plan },
-    });
-
-    res.json({ url: session.url });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to create checkout session' });
+  // Validate inputs
+  if (!token) {
+    return res.status(401).json({ error: 'No authentication token provided' });
   }
-});
-
-router.post('/update-selection', async (req, res) => {
-  const { companies, technology } = req.body;
-  const token = req.headers.authorization?.split('Bearer ')[1];
+  if (!plan || !validPlans.includes(plan)) {
+    return res.status(400).json({ error: 'Invalid or missing plan. Must be STUDENT, RECRUITER, or BUSINESS' });
+  }
 
   try {
+    // Verify token and get user
     const decoded = jwt.verify(token, JWT_SECRET);
     const user = await User.findById(decoded.id);
-    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
 
-    user.selectedCompanies = companies;
-    user.selectedTechnology = technology;
+    // Assign the plan to the user (assuming User model has a 'plan' field)
+    user.plan = plan;
     await user.save();
 
-    res.json({ message: 'Selection updated successfully' });
+    // Return success response
+    res.status(200).json({ message: `Successfully assigned ${plan} plan` });
   } catch (error) {
-    console.error('Error updating selection:', error.message);
-    res.status(500).json({ error: 'Failed to update selection' });
+    console.error('Error in /create-checkout-session:', error.message);
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+    res.status(500).json({ error: 'Failed to assign plan', details: error.message });
   }
 });
 

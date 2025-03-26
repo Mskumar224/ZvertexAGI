@@ -20,13 +20,18 @@ function Subscription() {
       if (!token) throw new Error('No authentication token found');
 
       const { data } = await axios.post(
-        `${process.env.REACT_APP_API_URL}/api/subscription/create-checkout-session`, // Updated endpoint
+        `${process.env.REACT_APP_API_URL}/api/subscription/create-checkout-session`,
         { plan: plan.title },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // Redirect to Stripe checkout URL
-      window.location.href = data.url;
+      // Redirect to appropriate dashboard based on plan
+      const redirectMap = {
+        STUDENT: '/student-dashboard',
+        RECRUITER: '/recruiter-dashboard',
+        BUSINESS: '/business-dashboard',
+      };
+      history.push(redirectMap[plan.title]);
     } catch (err) {
       setError(err.response?.data?.error || 'Subscription failed');
     }
