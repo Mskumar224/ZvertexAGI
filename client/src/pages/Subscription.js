@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { Container, Typography, Grid, Box, CircularProgress } from '@mui/material';
+import { Container, Typography, Grid, Box } from '@mui/material';
 import SubscriptionCard from '../components/SubscriptionCard';
 import axios from 'axios';
 import { useHistory } from 'react-router-dom';
 
 function Subscription() {
   const history = useHistory();
-  const [processing, setProcessing] = useState(false);
-  const [error, setError] = useState(null);
+  const [subscriptionError, setSubscriptionError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const plans = [
     { title: 'STUDENT', price: 39, resumes: 1, submissions: 45, description: 'Perfect for students starting their career.' },
@@ -16,18 +16,13 @@ function Subscription() {
   ];
 
   const handleSubscription = async (plan) => {
-    setError(null);
-    setProcessing(true);
-
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setError('You must be logged in to subscribe.');
-      setProcessing(false);
-      history.push('/login');
-      return;
-    }
+    setSubscriptionError(null);
+    setSubmitting(true);
 
     try {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('No authentication token found.');
+
       const response = await axios.post(
         `${process.env.REACT_APP_API_URL}/api/subscription/subscribe`,
         { plan: plan.title },
@@ -35,16 +30,15 @@ function Subscription() {
       );
 
       console.log('Subscription response:', response.data);
-
-      if (response.data.message === 'Subscription successful') {
+      if (response.data.message === 'Subscription updated') {
         redirectToDashboard(plan.title);
       }
     } catch (err) {
       const errorMessage = err.response?.data?.error || err.message || 'An unexpected error occurred';
       console.error('Subscription Error:', errorMessage);
-      setError(`Subscription failed: ${errorMessage}`);
+      setSubscriptionError(`Subscription failed: ${errorMessage}`);
     } finally {
-      setProcessing(false);
+      setSubmitting(false);
     }
   };
 
@@ -75,21 +69,20 @@ function Subscription() {
               submissions={plan.submissions}
               description={plan.description}
               onSelect={() => handleSubscription(plan)}
-              disabled={processing}
+              disabled={submitting}
             />
           </Grid>
         ))}
       </Grid>
-      {error && (
-        <Typography color="error" align="center" sx={{ mt: 5 }}>
-          {error}
+      {subscriptionError && (
+        <Typography color="error" sx={{ mt: 2, textAlign: 'center' }}>
+          {subscriptionError}
         </Typography>
       )}
-      {processing && (
-        <Box sx={{ mt: 5, textAlign: 'center' }}>
-          <CircularProgress size={24} />
-          <Typography>Processing subscription...</Typography>
-        </Box>
+      {submitting && (
+        <Typography sx={{ mt: 2, textAlign: 'center' }}>
+          Processing subscription...
+        </Typography>
       )}
     </Container>
   );

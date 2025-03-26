@@ -1,4 +1,8 @@
 require('dotenv').config();
+console.log('Environment Variables Loaded:');
+console.log('MONGO_URI:', process.env.MONGO_URI || 'Not set');
+console.log('PORT:', process.env.PORT || 'Not set');
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -10,15 +14,14 @@ const { scheduleDailyEmails } = require('./utils/dailyEmail');
 
 const app = express();
 
+// CORS configuration
 const corsOptions = {
-  origin: (origin, callback) => {
-    const allowedOrigins = ['https://zvertexagi.netlify.app', 'http://localhost:3000'];
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, origin || '*');
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: [
+    'https://67e23ab86a51458e138e0032--zvertexagi.netlify.app',
+    'https://67e2641113aab6f39709cd06--zvertexagi.netlify.app',
+    'https://67e34047bb1fc30008a62bbb--zvertexagi.netlify.app',
+    'http://localhost:3000',
+  ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
@@ -39,7 +42,7 @@ app.get('/test', (req, res) => res.send('Server is alive'));
 
 const mongoUri = process.env.MONGO_URI;
 if (!mongoUri) {
-  console.error('MONGO_URI is not defined.');
+  console.error('MONGO_URI is not defined. Please set it in environment variables.');
   process.exit(1);
 }
 mongoose.set('strictQuery', true);
