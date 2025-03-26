@@ -17,6 +17,8 @@
     "pdf-parse": "^1.1.1",
     "mammoth": "^1.5.1",
     "stripe": "^11.8.0",
-    "node-cron": "^3.0.2"
+    "node-cron": "^3.0.2",
+    "node-cache": "^5.1.2",
+    "google-search-results-nodejs": "^2.0.1"
   }
 }

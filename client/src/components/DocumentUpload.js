@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Box } from '@mui/material';
 import axios from 'axios';
 
 function DocumentUpload({ job, onClose }) {
@@ -24,15 +24,13 @@ function DocumentUpload({ job, onClose }) {
       });
       alert(data.message);
 
-      // Send confirmation email
       const token = localStorage.getItem('token');
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret'); // Fallback for local testing
-      const user = await axios.get(`${process.env.REACT_APP_API_URL}/api/auth/user`, {
+      const userResponse = await axios.get(`${process.env.REACT_APP_API_URL}/api/auth/user`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       await axios.post(`${process.env.REACT_APP_API_URL}/api/job/send-confirmation`, {
-        email: user.data.email,
+        email: userResponse.data.email,
         title: job.title,
         company: job.company,
         jobId: job.id,

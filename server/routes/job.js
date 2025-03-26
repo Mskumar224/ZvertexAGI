@@ -6,8 +6,12 @@ const jwt = require('jsonwebtoken');
 const { parseResume } = require('../utils/resumeParser');
 const axios = require('axios');
 const nodemailer = require('nodemailer');
+const NodeCache = require('node-cache');
+const serpApi = require('google-search-results-nodejs');
 
 const JWT_SECRET = process.env.JWT_SECRET;
+const jobCache = new NodeCache({ stdTTL: 600 }); // Cache for 10 minutes
+const search = new serpApi.GoogleSearch(process.env.SERPAPI_KEY);
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: { user: 'zvertexai@honotech.com', pass: 'qnfz cudq ytwe vjwp' },
@@ -49,15 +53,33 @@ router.post('/fetch-jobs', async (req, res) => {
   const decoded = jwt.verify(token, JWT_SECRET);
   const user = await User.findById(decoded.id);
 
-  const jobs = companies.flatMap(company => [
-    { id: `${company}-1`, title: `${technology} Engineer at ${company}`, company, link: `https://${company.toLowerCase().replace(/\s+/g, '')}.com/jobs/1`, requiresDocs: false },
-    { id: `${company}-2`, title: `${technology} Analyst at ${company}`, company, link: `https://${company.toLowerCase().replace(/\s+/g, '')}.com/jobs/2`, requiresDocs: true },
-  ]);
+  const cacheKey = `${user._id}-${companies.join(',')}-${technology}`;
+  const cachedJobs = jobCache.get(cacheKey);
+  if (cachedJobs) return res.json({ jobs: cachedJobs });
+
+  const jobs = await Promise.all(companies.map(async company => {
+    return new Promise((resolve) => {
+      search.json({
+        q: `${technology} jobs at ${company} site:${company.toLowerCase().replace(/\s+/g, '')}.com`,
+        location: 'United States',
+      }, (result) => {
+        const job = result.organic_results?.[0] || {};
+        resolve({
+          id: `${company}-${Date.now()}`,
+          title: job.title || `${technology} Engineer at ${company}`,
+          company,
+          link: job.link || `https://${company.toLowerCase().replace(/\s+/g, '')}.com/jobs/${Date.now()}`,
+          requiresDocs: false,
+        });
+      });
+    });
+  }));
 
   const appliedJobs = await Job.find({ user: user._id }).select('jobId');
   const appliedIds = appliedJobs.map(job => job.jobId);
   const availableJobs = jobs.map(job => ({ ...job, applied: appliedIds.includes(job.id) }));
 
+  jobCache.set(cacheKey, availableJobs);
   res.json({ jobs: availableJobs });
 });
 

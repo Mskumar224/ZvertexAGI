@@ -23,7 +23,7 @@ function scheduleRecurringJobs() {
         const todayJobs = user.jobsApplied.filter(job => new Date(job.createdAt).setHours(0, 0, 0, 0) === today);
         const submissionsLeft = planLimits[user.subscription] - todayJobs.length;
 
-        if (submissionsLeft <= 0) continue; // Stop if limit reached
+        if (submissionsLeft <= 0) continue;
 
         const companies = user.selectedCompanies;
         const technology = user.selectedTechnology;
@@ -65,7 +65,7 @@ function scheduleRecurringJobs() {
               `,
             });
 
-            break; // Apply one job per cycle to respect limits
+            break;
           }
         }
       }

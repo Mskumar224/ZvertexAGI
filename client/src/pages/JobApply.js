@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Container, Typography, TextField, Button, Select, MenuItem, Box, Checkbox, ListItemText } from '@mui/material';
+import { Container, Typography, TextField, Button, Select, MenuItem, Box, Checkbox, ListItemText, FormControl, InputLabel } from '@mui/material';
 import axios from 'axios';
 import DocumentUpload from '../components/DocumentUpload';
 
 function JobApply({ keywords, maxResumes, maxSubmissions }) {
   const [selectedTech, setSelectedTech] = useState('');
-  const [manualTech, setManualTech] = useState(''); // For manual tech entry
+  const [manualTech, setManualTech] = useState('');
   const [companies, setCompanies] = useState([]);
   const [manualCompany, setManualCompany] = useState('');
   const [jobs, setJobs] = useState([]);
@@ -14,7 +14,16 @@ function JobApply({ keywords, maxResumes, maxSubmissions }) {
 
   const techOptions = [
     'JavaScript', 'Python', 'React', 'Node.js', 'Java', 'SQL', 'AWS', 'Docker', 'TypeScript', 'Kotlin',
-    'C#', 'Ruby', 'PHP', 'Go', 'Swift'
+    'C#', 'Ruby', 'PHP', 'Go', 'Swift', 'Rust', 'Scala', 'Perl', 'Haskell', 'Lua',
+    'C++', 'C', 'Objective-C', 'R', 'MATLAB', 'Groovy', 'Dart', 'Elixir', 'F#', 'Erlang',
+    'Vue.js', 'Angular', 'Svelte', 'Ember.js', 'Backbone.js', 'Django', 'Flask', 'Spring', 'Rails', 'Laravel',
+    'Express.js', 'FastAPI', 'NestJS', 'GraphQL', 'REST', 'gRPC', 'SOAP', 'MongoDB', 'PostgreSQL', 'MySQL',
+    'SQLite', 'Redis', 'Cassandra', 'Elasticsearch', 'Firebase', 'DynamoDB', 'Oracle', 'MariaDB', 'CouchDB', 'Neo4j',
+    'Kubernetes', 'Terraform', 'Ansible', 'Chef', 'Puppet', 'Jenkins', 'GitHub Actions', 'CircleCI', 'Travis CI', 'GitLab CI',
+    'Azure', 'GCP', 'Heroku', 'DigitalOcean', 'Linode', 'Vercel', 'Netlify', 'Snowflake', 'Redshift', 'BigQuery',
+    'Pandas', 'NumPy', 'TensorFlow', 'PyTorch', 'Keras', 'Scikit-learn', 'Spark', 'Hadoop', 'Kafka', 'RabbitMQ',
+    'Jupyter', 'Tableau', 'Power BI', 'Looker', 'Qlik', 'D3.js', 'Three.js', 'WebGL', 'OpenGL', 'Unity',
+    'Unreal Engine', 'Blockchain', 'Solidity', 'Web3.js', 'Ethereum'
   ];
 
   const companyOptions = [
@@ -92,22 +101,27 @@ function JobApply({ keywords, maxResumes, maxSubmissions }) {
     <Container sx={{ py: 5, background: '#fff', borderRadius: 2, boxShadow: 1 }}>
       <Typography variant="h5" sx={{ mb: 3 }}>Apply to Jobs</Typography>
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h6">Select or Enter Technology</Typography>
-        <Select
-          value={selectedTech}
-          onChange={(e) => setSelectedTech(e.target.value)}
-          displayEmpty
-          sx={{ minWidth: 200, mb: 2 }}
-        >
-          <MenuItem value="">Choose Technology</MenuItem>
-          {techOptions.map(tech => <MenuItem key={tech} value={tech}>{tech}</MenuItem>)}
-        </Select>
-        <TextField
-          label="Or Enter Technology Manually"
-          value={manualTech}
-          onChange={(e) => setManualTech(e.target.value)}
-          sx={{ ml: 2, minWidth: 200 }}
-        />
+        <Typography variant="h6">Detected Tech: {keywords.join(', ')}</Typography>
+        <FormControl sx={{ minWidth: 200, mb: 2 }}>
+          <InputLabel>Select Technology</InputLabel>
+          <Select
+            value={selectedTech}
+            onChange={(e) => setSelectedTech(e.target.value)}
+            label="Select Technology"
+          >
+            {keywords.map(tech => <MenuItem key={tech} value={tech}>{tech}</MenuItem>)}
+            <MenuItem value="">Other</MenuItem>
+            {techOptions.map(tech => <MenuItem key={tech} value={tech}>{tech}</MenuItem>)}
+          </Select>
+        </FormControl>
+        {!selectedTech && (
+          <TextField
+            label="Or Enter Technology Manually"
+            value={manualTech}
+            onChange={(e) => setManualTech(e.target.value)}
+            sx={{ ml: 2, minWidth: 200 }}
+          />
+        )}
       </Box>
       <Box sx={{ mb: 3 }}>
         <Typography variant="h6">Select Companies (Up to 15)</Typography>
