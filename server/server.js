@@ -10,11 +10,10 @@ const { scheduleDailyEmails, sendSubscriptionEmail, sendJobAppliedEmail } = requ
 
 const app = express();
 
+// CORS configuration
 const corsOptions = {
   origin: [
-    'https://67e23ab86a51458e138e0032--zvertexagi.netlify.app',
-    'https://67e2641113aab6f39709cd06--zvertexagi.netlify.app',
-    'https://67e34047bb1fc30008a62bbb--zvertexagi.netlify.app',
+    'https://zvertexagi.netlify.app', // Update to your exact Netlify URL
     'http://localhost:3000',
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -23,8 +22,10 @@ const corsOptions = {
   optionsSuccessStatus: 200,
 };
 
+// Apply CORS to all routes
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
+app.options('*', cors(corsOptions)); // Handle preflight requests
+
 app.use(express.json());
 app.use(fileUpload());
 
