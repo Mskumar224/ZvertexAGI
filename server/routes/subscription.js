@@ -12,21 +12,34 @@ router.post('/subscribe', async (req, res) => {
   const { paymentMethodId, plan } = req.body;
   const token = req.headers.authorization?.split('Bearer ')[1];
 
-  if (!token) return res.status(401).json({ error: 'No token provided' });
-  if (!paymentMethodId || !plan) return res.status(400).json({ error: 'Missing paymentMethodId or plan' });
+  console.log('Subscription Request:', { paymentMethodId, plan, tokenProvided: !!token });
+
+  if (!token) {
+    return res.status(401).json({ error: 'No authentication token provided' });
+  }
+  if (!paymentMethodId) {
+    return res.status(400).json({ error: 'Missing paymentMethodId' });
+  }
+  if (!plan) {
+    return res.status(400).json({ error: 'Missing plan' });
+  }
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     const user = await User.findById(decoded.id);
-    if (!user) throw new Error('User not found');
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
 
     const planPriceMap = {
-      STUDENT: 'price_xxxxxxxxxxxxxx',
+      STUDENT: 'price_xxxxxxxxxxxxxx', // Replace with actual Stripe Price IDs
       RECRUITER: 'price_yyyyyyyyyyyy',
       BUSINESS: 'price_zzzzzzzzzzzz',
     };
     const priceId = planPriceMap[plan];
-    if (!priceId) throw new Error(`Invalid plan: ${plan}`);
+    if (!priceId) {
+      return res.status(400).json({ error: `Invalid plan: ${plan}` });
+    }
 
     let customer = await stripe.customers.list({ email: user.email });
     if (!customer.data.length) {
@@ -73,7 +86,7 @@ router.post('/subscribe', async (req, res) => {
     res.status(200).json({ message: 'Subscription successful', subscriptionId: subscription.id });
   } catch (error) {
     console.error('Stripe Subscription Error:', error.message);
-    res.status(400).json({ error: error.message || 'An error occurred with Stripe' });
+    res.status(400).json({ error: error.message || 'An error occurred during subscription processing' });
   }
 });
 
