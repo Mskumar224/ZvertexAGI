@@ -10,7 +10,7 @@ const nodemailer = require('nodemailer');
 const JWT_SECRET = process.env.JWT_SECRET;
 const transporter = nodemailer.createTransport({
   service: 'gmail',
-  auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+  auth: { user: 'zvertexai@honotech.com', pass: 'qnfz cudq ytwe vjwp' },
 });
 
 router.post('/upload-resume', async (req, res) => {
@@ -79,10 +79,26 @@ router.post('/apply', async (req, res) => {
     await user.save();
 
     await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+      from: '"ZvertexAGI Team" <zvertexai@honotech.com>',
       to: user.email,
-      subject: 'Job Application Confirmation',
-      text: `You’ve applied to ${title} at ${company}. Job ID: ${jobId}. View details: ${link}`,
+      subject: 'ZvertexAGI - Job Application Confirmation',
+      html: `
+        <div style="font-family: Arial, sans-serif; color: #333;">
+          <h2 style="color: #1976d2;">Job Application Confirmed</h2>
+          <p>Dear ${user.email},</p>
+          <p>We’re pleased to confirm your application for the following position:</p>
+          <ul>
+            <li><strong>Position:</strong> ${title}</li>
+            <li><strong>Company:</strong> ${company}</li>
+            <li><strong>Job ID:</strong> ${jobId}</li>
+            <li><strong>Details:</strong> <a href="${link}" style="color: #1976d2;">View Job</a></li>
+          </ul>
+          <p>Your application has been successfully submitted. We’ll keep you updated on your job search journey!</p>
+          <p>Best regards,<br>The ZvertexAGI Team</p>
+          <hr style="border: none; border-top: 1px solid #e0e0e0;">
+          <p style="font-size: 12px; color: #757575;">© 2025 ZvertexAGI. All rights reserved.</p>
+        </div>
+      `,
     });
 
     res.json({ message: 'Applied successfully', job });
@@ -99,6 +115,37 @@ router.get('/tracker', async (req, res) => {
     res.json(user.jobsApplied || []);
   } catch (error) {
     res.status(500).json({ error: 'Tracker fetch failed' });
+  }
+});
+
+router.post('/send-confirmation', async (req, res) => {
+  const { email, title, company, jobId, link } = req.body;
+  try {
+    await transporter.sendMail({
+      from: '"ZvertexAGI Team" <zvertexai@honotech.com>',
+      to: email,
+      subject: 'ZvertexAGI - Document Upload and Auto-Apply Confirmation',
+      html: `
+        <div style="font-family: Arial, sans-serif; color: #333;">
+          <h2 style="color: #1976d2;">Application Successfully Auto-Applied</h2>
+          <p>Dear ${email},</p>
+          <p>We’ve received your ID and Visa documents and have automatically applied for you to the following position:</p>
+          <ul>
+            <li><strong>Position:</strong> ${title}</li>
+            <li><strong>Company:</strong> ${company}</li>
+            <li><strong>Job ID:</strong> ${jobId}</li>
+            <li><strong>Details:</strong> <a href="${link}" style="color: #1976d2;">View Job</a></li>
+          </ul>
+          <p>Your application is now in progress. Thank you for trusting ZvertexAGI with your career goals!</p>
+          <p>Best regards,<br>The ZvertexAGI Team</p>
+          <hr style="border: none; border-top: 1px solid #e0e0e0;">
+          <p style="font-size: 12px; color: #757575;">© 2025 ZvertexAGI. All rights reserved.</p>
+        </div>
+      `,
+    });
+    res.json({ message: 'Confirmation email sent' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to send confirmation email' });
   }
 });
 

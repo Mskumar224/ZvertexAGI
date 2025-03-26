@@ -31,4 +31,16 @@ router.post('/login', async (req, res) => {
   }
 });
 
+router.get('/user', async (req, res) => {
+  const token = req.headers.authorization?.split('Bearer ')[1];
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json({ email: user.email });
+  } catch (error) {
+    res.status(500).json({ error: 'User fetch failed' });
+  }
+});
+
 module.exports = router;

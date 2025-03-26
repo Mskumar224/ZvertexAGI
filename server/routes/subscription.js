@@ -7,7 +7,7 @@ const nodemailer = require('nodemailer');
 const JWT_SECRET = process.env.JWT_SECRET;
 const transporter = nodemailer.createTransport({
   service: 'gmail',
-  auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+  auth: { user: 'zvertexai@honotech.com', pass: 'qnfz cudq ytwe vjwp' },
 });
 
 router.post('/subscribe', async (req, res) => {
@@ -34,10 +34,24 @@ router.post('/subscribe', async (req, res) => {
     await user.save();
 
     await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+      from: '"ZvertexAGI Team" <zvertexai@honotech.com>',
       to: user.email,
-      subject: 'Welcome to ZvertexAGI!',
-      text: `Thank you for choosing the ${plan} plan! You can now upload ${planLimits[plan].resumes} resume(s) and submit up to ${planLimits[plan].submissions} applications per day - all for free!`,
+      subject: 'Welcome to ZvertexAGI - Your Subscription is Active!',
+      html: `
+        <div style="font-family: Arial, sans-serif; color: #333;">
+          <h2 style="color: #1976d2;">Welcome to ZvertexAGI!</h2>
+          <p>Dear ${user.email},</p>
+          <p>Thank you for choosing the <strong>${plan}</strong> plan! You’re now set to enjoy:</p>
+          <ul>
+            <li><strong>${planLimits[plan].resumes}</strong> resume(s) upload</li>
+            <li><strong>${planLimits[plan].submissions}</strong> job submissions per day</li>
+          </ul>
+          <p>All of this comes at no cost to you. Start exploring your dashboard now and let us automate your career journey!</p>
+          <p>Best regards,<br>The ZvertexAGI Team</p>
+          <hr style="border: none; border-top: 1px solid #e0e0e0;">
+          <p style="font-size: 12px; color: #757575;">© 2025 ZvertexAGI. All rights reserved.</p>
+        </div>
+      `,
     });
 
     res.json({ message: 'Subscription successful', plan });
