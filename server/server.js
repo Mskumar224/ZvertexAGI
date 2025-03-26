@@ -11,7 +11,10 @@ const { scheduleDailyEmails } = require('./utils/dailyEmail');
 const app = express();
 
 const corsOptions = {
-  origin: ['http://localhost:3000', 'https://your-netlify-url.netlify.app'],
+  origin: [
+    'http://localhost:3000',            // Local dev
+    'https://zvertexagi.netlify.app',   // Production frontend
+  ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
