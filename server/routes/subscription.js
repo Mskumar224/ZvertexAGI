@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const { sendSubscriptionEmail } = require('../server');
+const { sendSubscriptionEmail } = require('../utils/dailyEmail'); // Corrected import
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 
