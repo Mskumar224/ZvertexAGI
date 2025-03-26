@@ -24,10 +24,19 @@ router.post('/upload-resume', async (req, res) => {
   }
 
   try {
-    if (!token) {
-      return res.status(401).json({ error: 'No authentication token provided' });
+    // Validate token presence and basic format
+    if (!token || typeof token !== 'string' || !token.trim()) {
+      return res.status(401).json({ error: 'No valid authentication token provided' });
     }
-    const decoded = jwt.verify(token, JWT_SECRET);
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+    } catch (jwtError) {
+      console.error('JWT error in /upload-resume:', jwtError.message);
+      return res.status(401).json({ error: 'Invalid or malformed token' });
+    }
+
     const user = await User.findById(decoded.id);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
@@ -74,7 +83,6 @@ router.post('/fetch-jobs', async (req, res) => {
   const { companies, technology } = req.body;
   const token = req.headers.authorization?.split('Bearer ')[1];
 
-  // Validate inputs
   if (!companies || !Array.isArray(companies) || !technology) {
     return res.status(400).json({ error: 'Companies (array) and technology are required' });
   }
