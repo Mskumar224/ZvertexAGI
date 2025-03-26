@@ -10,13 +10,16 @@ const NodeCache = require('node-cache');
 const serpApi = require('google-search-results-nodejs');
 
 const JWT_SECRET = process.env.JWT_SECRET;
-const SERPAPI_KEY = process.env.SERPAPI_KEY; // Ensure this is set in .env
-const jobCache = new NodeCache({ stdTTL: 600 }); // Cache for 10 minutes
+const SERPAPI_KEY = process.env.SERPAPI_KEY;
+const jobCache = new NodeCache({ stdTTL: 600 });
 const search = SERPAPI_KEY ? new serpApi.GoogleSearch(SERPAPI_KEY) : null;
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: { user: 'zvertexai@honotech.com', pass: 'qnfz cudq ytwe vjwp' },
 });
+
+// Utility to add delay between requests
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 router.post('/upload-resume', async (req, res) => {
   const token = req.headers.authorization?.split('Bearer ')[1];
@@ -60,7 +63,9 @@ router.post('/verify-companies', async (req, res) => {
   }
 
   try {
-    const results = await Promise.all(companies.map(async (company) => {
+    const results = await Promise.all(companies.map(async (company, index) => {
+      // Add a 1-second delay between requests to avoid 429
+      if (index > 0) await delay(1000);
       try {
         const response = await axios.get(`https://www.google.com/search?q=${encodeURIComponent(company + ' official website')}`, {
           timeout: 5000,
@@ -82,7 +87,6 @@ router.post('/fetch-jobs', async (req, res) => {
   const { companies, technology } = req.body;
   const token = req.headers.authorization?.split('Bearer ')[1];
 
-  // Validate inputs
   if (!companies || !Array.isArray(companies) || !technology) {
     return res.status(400).json({ error: 'Companies (array) and technology are required' });
   }
@@ -91,7 +95,6 @@ router.post('/fetch-jobs', async (req, res) => {
   }
 
   try {
-    // Verify token
     const decoded = jwt.verify(token, JWT_SECRET);
     const user = await User.findById(decoded.id);
     if (!user) {
@@ -102,13 +105,12 @@ router.post('/fetch-jobs', async (req, res) => {
     const cachedJobs = jobCache.get(cacheKey);
     if (cachedJobs) return res.json({ jobs: cachedJobs });
 
-    // Check for SerpApi key
     if (!SERPAPI_KEY || !search) {
       console.error('SerpApi key missing in /fetch-jobs');
       return res.status(503).json({ error: 'Job search service unavailable due to missing API key. Please contact support.' });
     }
 
-    const jobs = await Promise.all(companies.map(async (company) => {
+    const jobs = await Promise.all(companies.map(async company => {
       return new Promise((resolve) => {
         try {
           search.json({
