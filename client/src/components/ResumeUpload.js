@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, TextField, Typography, Box } from '@mui/material';
+import { Button, TextField, Typography, Box, Select, MenuItem } from '@mui/material';
 import axios from 'axios';
 
 function ResumeUpload({ onResumeParsed }) {
@@ -7,6 +7,7 @@ function ResumeUpload({ onResumeParsed }) {
   const [techs, setTechs] = useState([]);
   const [manualTech, setManualTech] = useState('');
   const [error, setError] = useState(null);
+  const techOptions = ['JavaScript', 'Python', 'React', 'Node.js', 'Java', 'SQL', 'AWS', 'Docker', 'TypeScript', 'Kubernetes'];
 
   const handleUpload = async () => {
     if (!file) {
@@ -28,9 +29,22 @@ function ResumeUpload({ onResumeParsed }) {
       onResumeParsed(data.keywords);
       setError(null);
     } catch (err) {
-      const errorMessage = err.response?.data?.error || 'Resume upload failed';
-      console.error('Upload Error:', err.response?.data || err.message);
-      setError(errorMessage);
+      setError(err.response?.data?.error || 'Resume upload failed');
+    }
+  };
+
+  const handleTechChange = (e) => {
+    const selected = e.target.value;
+    setTechs(selected);
+    onResumeParsed(selected);
+  };
+
+  const handleAddManualTech = () => {
+    if (manualTech && !techs.includes(manualTech)) {
+      const updatedTechs = [...techs, manualTech];
+      setTechs(updatedTechs);
+      onResumeParsed(updatedTechs);
+      setManualTech('');
     }
   };
 
@@ -46,23 +60,28 @@ function ResumeUpload({ onResumeParsed }) {
       <Button variant="contained" color="primary" onClick={handleUpload} disabled={!file}>
         Upload
       </Button>
-      {error && (
-        <Typography color="error" sx={{ mt: 2 }}>
-          {error}
-        </Typography>
-      )}
+      {error && <Typography color="error" sx={{ mt: 2 }}>{error}</Typography>}
       {techs.length > 0 && (
         <Box sx={{ mt: 2 }}>
-          <Typography>Suggested Technologies: {techs.join(', ')}</Typography>
+          <Typography>Suggested Technologies:</Typography>
+          <Select
+            multiple
+            value={techs}
+            onChange={handleTechChange}
+            fullWidth
+            sx={{ mt: 1 }}
+          >
+            {techOptions.map(tech => (
+              <MenuItem key={tech} value={tech}>{tech}</MenuItem>
+            ))}
+          </Select>
           <TextField
             label="Add Technology Manually"
             value={manualTech}
             onChange={(e) => setManualTech(e.target.value)}
             sx={{ mt: 2, mr: 2 }}
           />
-          <Button variant="outlined" onClick={() => { setTechs([...techs, manualTech]); setManualTech(''); }}>
-            Add
-          </Button>
+          <Button variant="outlined" onClick={handleAddManualTech}>Add</Button>
         </Box>
       )}
     </Box>

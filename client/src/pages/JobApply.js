@@ -1,65 +1,68 @@
 import React, { useState } from 'react';
-import { Container, Typography, TextField, Button, MenuItem, Select, Box } from '@mui/material';
+import { Container, Typography, TextField, Button, MenuItem, Select, Box, Chip } from '@mui/material';
 import axios from 'axios';
-import DocumentUpload from './components/DocumentUpload';
+import DocumentUpload from '../components/DocumentUpload';
 
 function JobApply({ keywords, maxResumes, maxSubmissions }) {
-  const [company, setCompany] = useState('');
+  const [companies, setCompanies] = useState([]);
   const [manualCompany, setManualCompany] = useState('');
   const [jobs, setJobs] = useState([]);
   const [selectedJob, setSelectedJob] = useState(null);
-  const companies = [
-    'Google', 'Microsoft', 'Amazon', 'Apple', 'Facebook', 'Tesla', 'IBM', 'Oracle', 'Intel', 'Cisco'
-  ];
+  const companyList = ['Google', 'Microsoft', 'Amazon', 'Apple', 'Facebook', 'Tesla', 'Netflix', 'IBM', 'Oracle', 'Adobe'];
 
-  const handleCompanyDetect = async () => {
+  const handleAddCompany = () => {
+    if (manualCompany && !companies.includes(manualCompany) && companies.length < 10) {
+      setCompanies([...companies, manualCompany]);
+      setManualCompany('');
+    }
+  };
+
+  const fetchJobs = async () => {
     try {
       const { data } = await axios.post(
         `${process.env.REACT_APP_API_URL}/api/job/fetch-jobs`,
-        { company: manualCompany || company, keywords },
+        { companies, keywords },
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
       setJobs(data.jobs);
     } catch (error) {
-      console.error('Fetch Jobs Error:', error.response ? error.response.data : error.message);
-      alert('Failed to fetch jobs!');
+      console.error('Fetch Jobs Error:', error);
     }
   };
 
-  const handleApply = async (job) => {
-    if (job.applied) {
-      alert('This job has already been applied to!');
-      return;
-    }
-    try {
-      await axios.post(
-        `${process.env.REACT_APP_API_URL}/api/job/apply`,
-        { jobId: job.id },
-        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
-      );
-      setJobs(jobs.map(j => j.id === job.id ? { ...j, applied: true } : j));
-      alert(`Applied to ${job.title} at ${job.company}!`);
-    } catch (error) {
-      console.error('Apply Error:', error.response ? error.response.data : error.message);
-      alert('Application failed!');
+  const handleDetectAndProceed = async () => {
+    await fetchJobs();
+    for (const job of jobs) {
+      if (!job.applied) {
+        if (!job.requiresDocs) {
+          await axios.post(
+            `${process.env.REACT_APP_API_URL}/api/job/apply`,
+            { jobId: job.id, company: job.company, title: job.title, link: job.link, requiresDocs: false },
+            { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+          );
+          setJobs(jobs.map(j => j.id === job.id ? { ...j, applied: true } : j));
+        } else {
+          setSelectedJob(job);
+          break;
+        }
+      }
     }
   };
 
   return (
     <Container sx={{ py: 5 }}>
-      <Typography variant="h5" gutterBottom>Select a Company</Typography>
+      <Typography variant="h5" gutterBottom>Select Companies (Up to 10)</Typography>
       <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
         <Select
-          value={company}
-          onChange={(e) => setCompany(e.target.value)}
+          multiple
+          value={companies}
+          onChange={(e) => setCompanies(e.target.value.slice(0, 10))}
           displayEmpty
           fullWidth
           sx={{ maxWidth: 300 }}
         >
           <MenuItem value="">Select from list</MenuItem>
-          {companies.map((c) => (
-            <MenuItem key={c} value={c}>{c}</MenuItem>
-          ))}
+          {companyList.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
         </Select>
         <TextField
           label="Or Enter Manually"
@@ -67,21 +70,29 @@ function JobApply({ keywords, maxResumes, maxSubmissions }) {
           onChange={(e) => setManualCompany(e.target.value)}
           sx={{ flexGrow: 1 }}
         />
-        <Button variant="contained" onClick={handleCompanyDetect}>Fetch Jobs</Button>
+        <Button variant="contained" onClick={handleAddCompany} disabled={companies.length >= 10}>
+          Add
+        </Button>
       </Box>
+      <Box sx={{ mb: 3 }}>
+        {companies.map((c, i) => (
+          <Chip key={i} label={c} onDelete={() => setCompanies(companies.filter(comp => comp !== c))} sx={{ mr: 1 }} />
+        ))}
+      </Box>
+      <Button variant="contained" onClick={handleDetectAndProceed} disabled={companies.length === 0}>
+        DETECT & PROCEED
+      </Button>
       {jobs.length > 0 && (
-        <Box>
+        <Box sx={{ mt: 3 }}>
           <Typography variant="h6" gutterBottom>Available Jobs</Typography>
-          {jobs.map((job) => (
+          {jobs.map(job => (
             <Box key={job.id} sx={{ p: 2, border: '1px solid #e0e0e0', mb: 2, borderRadius: 2 }}>
               <Typography>{job.title} - {job.company}</Typography>
-              <Typography variant="body2">
-                <a href={job.link} target="_blank" rel="noopener noreferrer">{job.link}</a>
-              </Typography>
+              <Typography variant="body2"><a href={job.link} target="_blank" rel="noopener noreferrer">{job.link}</a></Typography>
               <Button
                 variant="contained"
                 color={job.applied ? 'secondary' : 'primary'}
-                onClick={() => handleApply(job)}
+                onClick={() => job.requiresDocs ? setSelectedJob(job) : handleDetectAndProceed()}
                 disabled={job.applied}
                 sx={{ mt: 1 }}
               >

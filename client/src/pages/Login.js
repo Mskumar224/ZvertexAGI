@@ -17,11 +17,19 @@ function Login() {
       );
       localStorage.setItem('token', response.data.token);
       setError(null);
-      history.push('/subscription'); // Redirect to subscription page after login
+      history.push('/subscription');
     } catch (err) {
-      const errorMessage = err.response?.data?.message || 'Network Error';
-      console.error('Login Error:', errorMessage, err);
-      setError(errorMessage);
+      setError(err.response?.data?.message || 'Network Error');
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    try {
+      await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/forgot-password`, { email });
+      setError(null);
+      alert('Password reset email sent!');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to send reset email');
     }
   };
 
@@ -50,6 +58,9 @@ function Login() {
         />
         <Button variant="contained" color="primary" onClick={handleLogin} fullWidth sx={{ py: 1.5 }}>
           Login
+        </Button>
+        <Button variant="text" onClick={handleForgotPassword} sx={{ mt: 2 }}>
+          Forgot Password?
         </Button>
         {error && (
           <Typography color="error" sx={{ mt: 2, textAlign: 'center' }}>
