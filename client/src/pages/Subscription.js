@@ -9,9 +9,9 @@ function Subscription() {
   const [error, setError] = useState('');
 
   const plans = [
-    { title: 'STUDENT', price: 39, resumes: 1, submissions: 45, description: 'Perfect for students starting out.' },
-    { title: 'RECRUITER', price: 79, resumes: 5, submissions: 45, description: 'Ideal for recruiters managing talent.' },
-    { title: 'BUSINESS', price: 159, resumes: 3, submissions: 145, description: 'Built for businesses scaling up.' },
+    { title: 'STUDENT', price: 0, resumes: 1, submissions: 45, description: 'Perfect for students starting out.' },
+    { title: 'RECRUITER', price: 0, resumes: 5, submissions: 45, description: 'Ideal for recruiters managing talent.' },
+    { title: 'BUSINESS', price: 0, resumes: 3, submissions: 145, description: 'Built for businesses scaling up.' },
   ];
 
   const handleSubscription = async (plan) => {
@@ -20,12 +20,11 @@ function Subscription() {
       if (!token) throw new Error('No authentication token found');
 
       const { data } = await axios.post(
-        `${process.env.REACT_APP_API_URL}/api/subscription/create-checkout-session`,
+        `${process.env.REACT_APP_API_URL}/api/subscription/subscribe`,
         { plan: plan.title },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // Redirect to appropriate dashboard based on plan
       const redirectMap = {
         STUDENT: '/student-dashboard',
         RECRUITER: '/recruiter-dashboard',

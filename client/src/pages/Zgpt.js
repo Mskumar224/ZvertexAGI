@@ -13,21 +13,10 @@ function Zgpt() {
         </Typography>
         <Box sx={{ background: '#fff', p: 4, borderRadius: 2, boxShadow: 3 }}>
           <Typography variant="body1" sx={{ mb: 2 }}>
-            ZGPT by ZvertexAGI is your gateway to advanced AI solutions that revolutionize how you operate. Our in-house AI experts design and develop custom models to tackle your toughest challenges, from predictive analytics to intelligent automation.
+            ZGPT by ZvertexAGI is your gateway to advanced AI solutions that revolutionize how you operate.
           </Typography>
-          <Typography variant="body1" sx={{ mb: 2 }}>
-            <strong>Our AI Expertise:</strong>
-            <ul>
-              <li><strong>Tailored AI Models:</strong> We create bespoke AI systems that integrate seamlessly into your workflows.</li>
-              <li><strong>Automation:</strong> Streamline processes and boost efficiency with intelligent automation tools.</li>
-              <li><strong>Data-Driven Insights:</strong> Harness the power of your data with our advanced analytics solutions.</li>
-            </ul>
-          </Typography>
-          <Typography variant="body1" sx={{ mb: 3 }}>
-            <strong>Partner with Us:</strong> Bring your vision to life with ZGPT. We’re looking for innovative companies to collaborate on in-house AI projects that push boundaries and drive success. Let’s build the future together!
-          </Typography>
-          <Button variant="contained" sx={{ background: '#1976d2', color: '#fff', fontWeight: 'bold' }} onClick={() => window.location.href = 'mailto:zvertexai@honotech.com'}>
-            Collaborate on AI Projects
+          <Button variant="contained" sx={{ background: '#1976d2', color: '#fff' }} onClick={() => window.location.href = 'mailto:zvertexai@honotech.com'}>
+            Contact Us
           </Button>
         </Box>
       </Container>

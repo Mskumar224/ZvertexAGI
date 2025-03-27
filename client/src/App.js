@@ -1,23 +1,17 @@
-import React, { useState, useEffect, Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Route, Switch, useHistory } from 'react-router-dom';
-import { Elements } from '@stripe/react-stripe-js';
-import { loadStripe } from '@stripe/stripe-js';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Route, Switch, Redirect, useHistory } from 'react-router-dom';
+import Home from './pages/Home';
+import Signup from './pages/Signup';
+import Login from './pages/Login';
+import Subscription from './pages/Subscription';
+import StudentDashboard from './pages/StudentDashboard';
+import RecruiterDashboard from './pages/RecruiterDashboard';
+import BusinessDashboard from './pages/BusinessDashboard';
+import JobApply from './pages/JobApply';
+import Saas from './pages/Saas';
+import Zgpt from './pages/Zgpt';
+import Petmic from './pages/Petmic';
 import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material';
-import axios from 'axios';
-
-const Home = lazy(() => import('./pages/Home'));
-const Signup = lazy(() => import('./pages/Signup'));
-const Login = lazy(() => import('./pages/Login'));
-const Subscription = lazy(() => import('./pages/Subscription'));
-const StudentDashboard = lazy(() => import('./pages/StudentDashboard'));
-const RecruiterDashboard = lazy(() => import('./pages/RecruiterDashboard'));
-const BusinessDashboard = lazy(() => import('./pages/BusinessDashboard'));
-const JobApply = lazy(() => import('./pages/JobApply'));
-const Saas = lazy(() => import('./pages/Saas'));
-const Zgpt = lazy(() => import('./pages/Zgpt'));
-const Petmic = lazy(() => import('./pages/Petmic'));
-
-const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
 
 function Header() {
   const history = useHistory();
@@ -54,51 +48,33 @@ function Header() {
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
-  const history = useHistory();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (token) {
-      axios.get(`${process.env.REACT_APP_API_URL}/api/auth/user`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }).then(response => {
-        setIsLoggedIn(true);
-        const subscription = response.data.subscription || 'STUDENT';
-        const redirectMap = {
-          STUDENT: '/student-dashboard',
-          RECRUITER: '/recruiter-dashboard',
-          BUSINESS: '/business-dashboard',
-        };
-        history.push(redirectMap[subscription] || '/student-dashboard');
-      }).catch(() => {
-        localStorage.removeItem('token');
-        setIsLoggedIn(false);
-      });
-    }
-  }, [history]);
+    setIsLoggedIn(!!token);
+  }, []);
 
   return (
     <Router>
-      <Elements stripe={stripePromise}>
-        <Header />
-        <Suspense fallback={<Typography>Loading...</Typography>}>
-          <Box sx={{ mt: 3 }}>
-            <Switch>
-              <Route exact path="/" component={Home} />
-              <Route path="/signup" component={Signup} />
-              <Route path="/login" component={Login} />
-              <Route path="/subscription" component={Subscription} />
-              <Route path="/student-dashboard" component={StudentDashboard} />
-              <Route path="/recruiter-dashboard" component={RecruiterDashboard} />
-              <Route path="/business-dashboard" component={BusinessDashboard} />
-              <Route path="/job-apply" component={JobApply} />
-              <Route path="/saas" component={Saas} />
-              <Route path="/zgpt" component={Zgpt} />
-              <Route path="/petmic" component={Petmic} />
-            </Switch>
-          </Box>
-        </Suspense>
-      </Elements>
+      <Header />
+      <Box sx={{ mt: 3 }}>
+        <Switch>
+          <Route exact path="/" component={Home} />
+          <Route path="/signup" component={Signup} />
+          <Route path="/login" component={Login} />
+          <Route path="/subscription" component={Subscription} />
+          <Route path="/student-dashboard" component={StudentDashboard} />
+          <Route path="/recruiter-dashboard" component={RecruiterDashboard} />
+          <Route path="/business-dashboard" component={BusinessDashboard} />
+          <Route path="/job-apply" component={JobApply} />
+          <Route path="/saas" component={Saas} />
+          <Route path="/zgpt" component={Zgpt} />
+          <Route path="/petmic" component={Petmic} />
+          <Route path="*">
+            <Redirect to="/" />
+          </Route>
+        </Switch>
+      </Box>
     </Router>
   );
 }

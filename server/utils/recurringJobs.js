@@ -1,5 +1,4 @@
 const cron = require('node-cron');
-const axios = require('axios');
 const User = require('../models/User');
 const Job = require('../models/Job');
 const nodemailer = require('nodemailer');

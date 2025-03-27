@@ -1,29 +1,9 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Container, Typography, Button, Box } from '@mui/material';
 import { useHistory } from 'react-router-dom';
-import axios from 'axios';
 
 function Home() {
   const history = useHistory();
-
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      axios.get(`${process.env.REACT_APP_API_URL}/api/auth/user`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }).then(response => {
-        const subscription = response.data.subscription || 'STUDENT';
-        const redirectMap = {
-          STUDENT: '/student-dashboard',
-          RECRUITER: '/recruiter-dashboard',
-          BUSINESS: '/business-dashboard',
-        };
-        history.push(redirectMap[subscription] || '/student-dashboard');
-      }).catch(() => {
-        localStorage.removeItem('token');
-      });
-    }
-  }, [history]);
 
   return (
     <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1976d2, #ffffff)' }}>

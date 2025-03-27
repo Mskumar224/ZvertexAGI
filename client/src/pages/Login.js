@@ -27,7 +27,7 @@ function Login() {
       <Button variant="contained" fullWidth onClick={handleLogin} sx={{ background: '#1976d2', py: 1.5 }}>Login</Button>
       {error && <Typography color="error" sx={{ mt: 2 }}>{error}</Typography>}
       <Typography sx={{ mt: 2, textAlign: 'center' }}>
-        Don’t have an account? <a href="/signup">Sign Up</a>
+        Don’t have an account? <Button onClick={() => history.push('/signup')}>Sign Up</Button>
       </Typography>
     </Container>
   );

@@ -12,15 +12,16 @@ const { scheduleRecurringJobs } = require('./utils/recurringJobs');
 const app = express();
 
 const corsOptions = {
-  origin: ['https://zvertexagi.netlify.app', 'http://localhost:3000'], // Netlify first, then local dev
+  origin: ['http://localhost:3000', 'https://zvertexagi.netlify.app'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true, // Allow cookies/authorization headers
-  optionsSuccessStatus: 204, // Standard response for preflight success
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
 };
 
-// Apply CORS middleware first to handle all requests, including preflight
 app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 app.use(express.json());
 app.use(fileUpload());
