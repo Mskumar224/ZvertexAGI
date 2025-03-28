@@ -6,6 +6,8 @@ const fileUpload = require('express-fileupload');
 const authRoutes = require('./routes/auth');
 const subscriptionRoutes = require('./routes/subscription');
 const jobRoutes = require('./routes/job');
+const zgptRoutes = require('./routes/zgpt');
+
 const { scheduleDailyEmails } = require('./utils/dailyEmail');
 const { scheduleRecurringJobs } = require('./utils/recurringJobs');
 
@@ -29,8 +31,10 @@ app.use(fileUpload());
 app.use('/api/auth', authRoutes);
 app.use('/api/subscription', subscriptionRoutes);
 app.use('/api/job', jobRoutes);
+app.use('/api/zgpt', zgptRoutes);
 
 app.get('/test', (req, res) => res.send('Server is alive'));
+app.get('/health', (req, res) => res.status(200).send('OK'));
 
 mongoose
   .connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
@@ -40,5 +44,5 @@ mongoose
 scheduleDailyEmails();
 scheduleRecurringJobs();
 
-const PORT = process.env.PORT || 10000; // Default to Render’s expected port
+const PORT = process.env.PORT || 10000;
 app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));

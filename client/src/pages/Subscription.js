@@ -9,9 +9,9 @@ function Subscription() {
   const [error, setError] = useState('');
 
   const plans = [
-    { title: 'STUDENT', price: 0, resumes: 1, submissions: 45, description: 'Perfect for students starting out.' },
-    { title: 'RECRUITER', price: 0, resumes: 5, submissions: 45, description: 'Ideal for recruiters managing talent.' },
-    { title: 'BUSINESS', price: 0, resumes: 3, submissions: 145, description: 'Built for businesses scaling up.' },
+    { title: 'STUDENT', price: 0, resumes: 1, submissions: 45, description: 'Automate your job hunt effortlessly.' },
+    { title: 'RECRUITER', price: 0, resumes: 5, submissions: 45, description: 'Manage 5 profiles with ease.' },
+    { title: 'BUSINESS', price: 0, resumes: 15, submissions: 145, description: 'Scale hiring with 3 recruiters.' },
   ];
 
   const handleSubscription = async (plan) => {
@@ -37,12 +37,12 @@ function Subscription() {
   };
 
   return (
-    <Container sx={{ py: 8, background: '#f5f5f5' }}>
+    <Container sx={{ py: 8 }}>
       <Typography variant="h3" align="center" sx={{ color: '#1976d2', mb: 4 }}>
         Choose Your Free Plan
       </Typography>
       <Typography align="center" sx={{ mb: 5, color: '#616161' }}>
-        Select a plan tailored to your needs - no payment required!
+        Tailored automation for Students, Recruiters, and Businesses—no cost!
       </Typography>
       <Grid container spacing={4} justifyContent="center">
         {plans.map((plan) => (
@@ -52,7 +52,7 @@ function Subscription() {
               price={plan.price}
               resumes={plan.resumes}
               submissions={plan.submissions}
-              description={`${plan.description} (Free Access)`}
+              description={plan.description}
               onSelect={() => handleSubscription(plan)}
             />
           </Grid>

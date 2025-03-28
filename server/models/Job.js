@@ -8,6 +8,7 @@ const jobSchema = new mongoose.Schema({
   applied: { type: Boolean, default: false },
   requiresDocs: Boolean,
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  profile: { type: mongoose.Schema.Types.ObjectId, ref: 'Profile' },
   createdAt: { type: Date, default: Date.now },
 });
 

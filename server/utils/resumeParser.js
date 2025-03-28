@@ -13,7 +13,10 @@ async function parseResume(file) {
     text = file.data.toString('utf8').toLowerCase();
   }
 
-  const keywords = ['javascript', 'python', 'react', 'node', 'java', 'sql', 'aws', 'docker', 'typescript', 'kotlin'].filter(kw => text.includes(kw));
+  const keywords = [
+    'javascript', 'python', 'react', 'node', 'java', 'sql', 'aws', 'docker', 'typescript', 'kotlin',
+    'c#', 'ruby', 'php', 'go', 'swift', 'scala', 'rust', 'angular', 'vue', 'django'
+  ].filter(kw => text.includes(kw));
   return keywords.length > 0 ? keywords : [];
 }
 

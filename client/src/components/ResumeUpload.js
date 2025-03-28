@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button, TextField, Typography, Box } from '@mui/material';
 import axios from 'axios';
 
-function ResumeUpload({ onResumeParsed, maxResumes }) {
+function ResumeUpload({ onResumeParsed, maxResumes, profileId }) {
   const [file, setFile] = useState(null);
   const [techs, setTechs] = useState([]);
   const [manualTech, setManualTech] = useState('');
@@ -34,8 +34,8 @@ function ResumeUpload({ onResumeParsed, maxResumes }) {
   };
 
   return (
-    <Box sx={{ p: 3, border: '1px solid #e0e0e0', borderRadius: 2, background: '#fff' }}>
-      <Typography variant="h6" sx={{ mb: 2 }}>Upload Resume (Max: {maxResumes})</Typography>
+    <Box sx={{ p: 3, border: '1px solid #e0e0e0', borderRadius: 2, background: '#fff', mt: 3 }}>
+      <Typography variant="h6" sx={{ mb: 2 }}>Upload Resume {profileId !== undefined ? `(Profile ${profileId + 1})` : ''}</Typography>
       <input type="file" accept=".pdf,.doc,.docx,.txt" onChange={(e) => setFile(e.target.files[0])} style={{ display: 'block', marginBottom: '10px' }} />
       <Button variant="contained" onClick={handleUpload} sx={{ background: '#1976d2', mb: 2 }}>Upload</Button>
       {error && <Typography color="error" sx={{ mb: 2 }}>{error}</Typography>}

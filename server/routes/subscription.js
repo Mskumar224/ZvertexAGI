@@ -1,3 +1,4 @@
+// File Location: C:\Users\satee\OneDrive\Desktop\ZvertexAGI\ZvertexAGI\server\routes\subscription.js
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
@@ -38,18 +39,16 @@ router.post('/subscribe', async (req, res) => {
       to: user.email,
       subject: 'Welcome to ZvertexAGI - Your Subscription is Active!',
       html: `
-        <div style="font-family: Arial, sans-serif; color: #333;">
-          <h2 style="color: #1976d2;">Welcome to ZvertexAGI!</h2>
+        <div style="font-family: Arial, sans-serif; color: #fff; background: #1c2526; padding: 20px;">
+          <h2 style="color: #fff;">Welcome to ZvertexAGI!</h2>
           <p>Dear ${user.email},</p>
           <p>Thank you for choosing the <strong>${plan}</strong> plan! You’re now set to enjoy:</p>
           <ul>
             <li><strong>${planLimits[plan].resumes}</strong> resume(s) upload</li>
             <li><strong>${planLimits[plan].submissions}</strong> job submissions per day</li>
           </ul>
-          <p>All of this comes at no cost to you. Start exploring your dashboard now and let us automate your career journey!</p>
+          <p>Start exploring your dashboard now!</p>
           <p>Best regards,<br>The ZvertexAGI Team</p>
-          <hr style="border: none; border-top: 1px solid #e0e0e0;">
-          <p style="font-size: 12px; color: #757575;">© 2025 ZvertexAGI. All rights reserved.</p>
         </div>
       `,
     });

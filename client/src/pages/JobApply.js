@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Container, Typography, TextField, Button, Select, MenuItem, Box, Checkbox, ListItemText } from '@mui/material';
 import axios from 'axios';
 import DocumentUpload from '../components/DocumentUpload';
 
-function JobApply({ keywords, maxResumes, maxSubmissions }) {
+function JobApply({ keywords, maxResumes, maxSubmissions, profileId }) {
   const [selectedTech, setSelectedTech] = useState('');
   const [manualTech, setManualTech] = useState('');
   const [companies, setCompanies] = useState([]);
@@ -12,14 +12,18 @@ function JobApply({ keywords, maxResumes, maxSubmissions }) {
   const [selectedJob, setSelectedJob] = useState(null);
   const [error, setError] = useState('');
 
-  const techOptions = [
-    'JavaScript', 'Python', 'React', 'Node.js', 'Java', 'SQL', 'AWS', 'Docker', 'TypeScript', 'Kotlin',
-    'C#', 'Ruby', 'PHP', 'Go', 'Swift'
-  ];
+  const techOptions = {
+    'Frontend': ['React', 'Angular', 'Vue.js', 'TypeScript', 'JavaScript'],
+    'Backend': ['Node.js', 'Python', 'Java', 'Ruby', 'PHP', 'Go', 'C#'],
+    'DevOps': ['AWS', 'Docker', 'Kubernetes', 'Terraform', 'Jenkins'],
+    'Mobile': ['Swift', 'Kotlin', 'Flutter', 'React Native'],
+    'Data': ['SQL', 'NoSQL', 'R', 'MATLAB', 'Pandas'],
+    'Other': ['Rust', 'Scala', 'Perl', 'Haskell'],
+  };
 
   const companyOptions = [
-    'HubSpot', 'Zoho', 'Okta', 'PagerDuty', 'Twilio', 'Asana', 'Zapier', 'Freshworks', 'Pipedrive', 'GitLab',
-    'Atlassian', 'ServiceNow', 'Splunk', 'Datadog', 'New Relic', 'monday.com', 'Trello', 'Wrike', 'ClickUp', 'Basecamp'
+    'Indeed', 'LinkedIn', 'Glassdoor', 'Monster', 'SimplyHired', 'CareerBuilder', 'ZipRecruiter', 'Snagajob', 'Hired', 'Dice',
+    'AngelList', 'Stack Overflow Jobs', 'GitHub Jobs', 'Remote.co', 'We Work Remotely'
   ];
 
   const handleCompanyChange = (event) => {
@@ -28,7 +32,7 @@ function JobApply({ keywords, maxResumes, maxSubmissions }) {
     else setError('Maximum 15 companies allowed');
   };
 
-  const verifyCompanies = async () => {
+  const verifyAndFetchJobs = async () => {
     const allCompanies = [...companies, ...(manualCompany ? [manualCompany] : [])];
     if (allCompanies.length === 0) return setError('Select at least one company');
     if (allCompanies.length > 15) return setError('Maximum 15 companies allowed');
@@ -40,119 +44,111 @@ function JobApply({ keywords, maxResumes, maxSubmissions }) {
       const validCompanies = data.companies.filter(c => c.valid).map(c => c.name);
       if (validCompanies.length === 0) return setError('No valid companies detected');
       setCompanies(validCompanies);
-      fetchJobs(validCompanies, techToUse);
-    } catch (err) {
-      setError('Company verification failed');
-    }
-  };
 
-  const fetchJobs = async (validCompanies, tech) => {
-    try {
-      const { data } = await axios.post(
+      const { data: jobData } = await axios.post(
         `${process.env.REACT_APP_API_URL}/api/job/fetch-jobs`,
-        { companies: validCompanies, technology: tech },
+        { companies: validCompanies, technology: techToUse },
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
-      setJobs(data.jobs);
+      setJobs(jobData.jobs);
       setError('');
 
       await axios.post(
         `${process.env.REACT_APP_API_URL}/api/subscription/update-selection`,
-        { companies: validCompanies, technology: tech },
+        { companies: validCompanies, technology: techToUse },
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
+
+      for (const job of jobData.jobs) {
+        if (!job.applied) {
+          await handleApply(job);
+        }
+      }
     } catch (err) {
-      setError('Failed to fetch jobs');
+      setError('Failed to fetch or apply to jobs');
     }
   };
 
   const handleApply = async (job) => {
-    if (job.applied) return alert('Already applied to this job!');
-    if (job.requiresDocs) {
-      setSelectedJob(job);
-    } else {
-      try {
-        const { data } = await axios.post(
-          `${process.env.REACT_APP_API_URL}/api/job/apply`,
-          { jobId: job.id, company: job.company, title: job.title, link: job.link, requiresDocs: job.requiresDocs },
-          { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
-        );
-        setJobs(jobs.map(j => j.id === job.id ? { ...j, applied: true } : j));
-        alert(data.message);
-      } catch (err) {
-        setError(err.response?.data?.error || 'Application failed');
-      }
+    if (job.applied) return;
+    try {
+      const { data } = await axios.post(
+        `${process.env.REACT_APP_API_URL}/api/job/apply`,
+        { jobId: job.id, company: job.company, title: job.title, link: job.link, requiresDocs: job.requiresDocs, profileId },
+        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+      );
+      setJobs(jobs.map(j => j.id === job.id ? { ...j, applied: true } : j));
+    } catch (err) {
+      setError(err.response?.data?.error || 'Application failed');
     }
   };
 
   return (
-    <Container sx={{ py: 5, background: '#fff', borderRadius: 2, boxShadow: 1 }}>
-      <Typography variant="h5" sx={{ mb: 3 }}>Apply to Jobs</Typography>
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h6">Select or Enter Technology</Typography>
-        <Select
-          value={selectedTech}
-          onChange={(e) => setSelectedTech(e.target.value)}
-          displayEmpty
-          sx={{ minWidth: 200, mb: 2 }}
-        >
-          <MenuItem value="">Choose Technology</MenuItem>
-          {techOptions.map(tech => <MenuItem key={tech} value={tech}>{tech}</MenuItem>)}
-        </Select>
-        <TextField
-          label="Or Enter Technology Manually"
-          value={manualTech}
-          onChange={(e) => setManualTech(e.target.value)}
-          sx={{ ml: 2, minWidth: 200 }}
-        />
-      </Box>
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h6">Select Companies (Up to 15)</Typography>
-        <Select
-          multiple
-          value={companies}
-          onChange={handleCompanyChange}
-          renderValue={(selected) => selected.join(', ')}
-          sx={{ minWidth: 300, mb: 2 }}
-        >
-          {companyOptions.map(company => (
-            <MenuItem key={company} value={company}>
-              <Checkbox checked={companies.indexOf(company) > -1} />
-              <ListItemText primary={company} />
-            </MenuItem>
-          ))}
-        </Select>
-        <TextField
-          label="Add Manual Company"
-          value={manualCompany}
-          onChange={(e) => setManualCompany(e.target.value)}
-          sx={{ mr: 2 }}
-        />
-        <Button variant="contained" onClick={verifyCompanies} sx={{ background: '#1976d2' }}>
-          Fetch Jobs
-        </Button>
-      </Box>
-      {error && <Typography color="error" sx={{ mb: 2 }}>{error}</Typography>}
-      {jobs.length > 0 && (
-        <Box>
-          <Typography variant="h6" sx={{ mb: 2 }}>Available Jobs (Auto-Apply every 30 mins)</Typography>
-          {jobs.map(job => (
-            <Box key={job.id} sx={{ p: 2, border: '1px solid #e0e0e0', mb: 2, borderRadius: 1 }}>
-              <Typography>{job.title}</Typography>
-              <Typography variant="body2"><a href={job.link} target="_blank" rel="noopener noreferrer">{job.link}</a></Typography>
-              <Button
-                variant="contained"
-                onClick={() => handleApply(job)}
-                disabled={job.applied}
-                sx={{ mt: 1, background: job.applied ? '#e0e0e0' : '#1976d2', color: job.applied ? '#000' : '#fff' }}
-              >
-                {job.applied ? 'Applied' : 'Apply Now'}
-              </Button>
-            </Box>
-          ))}
+    <Container sx={{ py: 5 }}>
+      <Box sx={{ p: 3, background: '#fff', borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+        <Typography variant="h5" sx={{ mb: 3 }}>Apply to Jobs (Auto-Apply Every 30 Mins)</Typography>
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h6">Select or Enter Technology</Typography>
+          <Select
+            value={selectedTech}
+            onChange={(e) => setSelectedTech(e.target.value)}
+            displayEmpty
+            sx={{ minWidth: 200, mb: 2 }}
+          >
+            <MenuItem value="">Choose Technology</MenuItem>
+            {Object.entries(techOptions).map(([category, techs]) => [
+              <MenuItem disabled key={category}><strong>{category}</strong></MenuItem>,
+              ...techs.map(tech => <MenuItem key={tech} value={tech}>{tech}</MenuItem>)
+            ])}
+          </Select>
+          <TextField
+            label="Or Enter Technology Manually"
+            value={manualTech}
+            onChange={(e) => setManualTech(e.target.value)}
+            sx={{ ml: 2, minWidth: 200 }}
+          />
         </Box>
-      )}
-      {selectedJob && <DocumentUpload job={selectedJob} onClose={() => setSelectedJob(null)} />}
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h6">Select Companies (Up to 15)</Typography>
+          <Select
+            multiple
+            value={companies}
+            onChange={handleCompanyChange}
+            renderValue={(selected) => selected.join(', ')}
+            sx={{ minWidth: 300, mb: 2 }}
+          >
+            {companyOptions.map(company => (
+              <MenuItem key={company} value={company}>
+                <Checkbox checked={companies.indexOf(company) > -1} />
+                <ListItemText primary={company} />
+              </MenuItem>
+            ))}
+          </Select>
+          <TextField
+            label="Add Manual Company"
+            value={manualCompany}
+            onChange={(e) => setManualCompany(e.target.value)}
+            sx={{ mr: 2 }}
+          />
+          <Button variant="contained" color="primary" onClick={verifyAndFetchJobs}>
+            Start Auto-Apply
+          </Button>
+        </Box>
+        {error && <Typography color="error" sx={{ mb: 2 }}>{error}</Typography>}
+        {jobs.length > 0 && (
+          <Box>
+            <Typography variant="h6" sx={{ mb: 2 }}>Jobs (Auto-Applying)</Typography>
+            {jobs.map(job => (
+              <Box key={job.id} sx={{ p: 2, border: '1px solid #e0e0e0', mb: 2, borderRadius: 1 }}>
+                <Typography>{job.title}</Typography>
+                <Typography variant="body2"><a href={job.link} target="_blank" rel="noopener noreferrer">{job.link}</a></Typography>
+                <Typography>{job.applied ? 'Applied' : 'Applying...'}</Typography>
+              </Box>
+            ))}
+          </Box>
+        )}
+        {selectedJob && <DocumentUpload job={selectedJob} onClose={() => setSelectedJob(null)} />}
+      </Box>
     </Container>
   );
 }

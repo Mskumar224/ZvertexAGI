@@ -1,0 +1,33 @@
+const express = require('express');
+const router = express.Router();
+const axios = require('axios');
+
+router.post('/search', async (req, res) => {
+  const { query } = req.body;
+  try {
+    // Mock search results for Zgpt functionality
+    const mockResults = [
+      { 
+        title: `${query} Overview`, 
+        content: `This is a brief overview about ${query}. It provides key insights and information relevant to your search.`, 
+        link: `https://example.com/${query.toLowerCase().replace(/\s+/g, '-')}` 
+      },
+      { 
+        title: `Latest on ${query}`, 
+        content: `Explore the most recent updates and trends related to ${query}. Stay informed with fresh content.`, 
+        link: `https://example.com/${query.toLowerCase().replace(/\s+/g, '-')}/latest` 
+      },
+      { 
+        title: `${query} Resources`, 
+        content: `Find useful resources and tools for ${query} to enhance your knowledge or skills.`, 
+        link: `https://example.com/${query.toLowerCase().replace(/\s+/g, '-')}/resources` 
+      },
+    ];
+
+    res.json({ results: mockResults });
+  } catch (error) {
+    res.status(500).json({ error: 'Search failed', details: error.message });
+  }
+});
+
+module.exports = router;
