@@ -38,8 +38,13 @@ function DocumentUpload({ userId, onUploadSuccess }) {
       setError('');
       onUploadSuccess(data);
     } catch (err) {
-      setError(err.response?.data?.message || 'Upload failed');
-      console.error('Upload error:', err);
+      const errorMessage = err.response?.data?.message || 'Upload failed due to an unknown error';
+      setError(errorMessage);
+      console.error('Upload error:', {
+        message: errorMessage,
+        status: err.response?.status,
+        details: err.response?.data?.error || err.message,
+      });
     }
   };
 
