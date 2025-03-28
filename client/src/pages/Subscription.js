@@ -1,64 +1,64 @@
 import React, { useState } from 'react';
-import { Container, Typography, Grid, Box } from '@mui/material';
-import SubscriptionCard from '../components/SubscriptionCard';
+import { Container, Typography, Button, Card, CardContent, CardActions } from '@mui/material'; // Removed unused Box
 import axios from 'axios';
-import { useHistory } from 'react-router-dom';
 
 function Subscription() {
-  const history = useHistory();
-  const [error, setError] = useState('');
+  const [plan, setPlan] = useState('');
 
   const plans = [
-    { title: 'STUDENT', price: 0, resumes: 1, submissions: 45, description: 'Automate your job hunt effortlessly.' },
-    { title: 'RECRUITER', price: 0, resumes: 5, submissions: 45, description: 'Manage 5 profiles with ease.' },
-    { title: 'BUSINESS', price: 0, resumes: 15, submissions: 145, description: 'Scale hiring with 3 recruiters.' },
+    { name: 'STUDENT', price: '$10/month', limit: 45 },
+    { name: 'RECRUITER', price: '$15/month', limit: 45 },
+    { name: 'BUSINESS', price: '$50/month', limit: 145 },
   ];
 
-  const handleSubscription = async (plan) => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('No authentication token found');
+  const handleSubscribe = async (selectedPlan) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      window.location.href = '/login';
+      return;
+    }
 
-      const { data } = await axios.post(
+    try {
+      await axios.post(
         `${process.env.REACT_APP_API_URL}/api/subscription/subscribe`,
-        { plan: plan.title },
+        { plan: selectedPlan },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      const redirectMap = {
-        STUDENT: '/student-dashboard',
-        RECRUITER: '/recruiter-dashboard',
-        BUSINESS: '/business-dashboard',
-      };
-      history.push(redirectMap[plan.title]);
+      setPlan(selectedPlan);
+      alert(`Subscribed to ${selectedPlan} plan!`);
     } catch (err) {
-      setError(err.response?.data?.error || 'Subscription failed');
+      console.error('Subscription failed:', err);
+      alert('Subscription failed.');
     }
   };
 
   return (
-    <Container sx={{ py: 8 }}>
-      <Typography variant="h3" align="center" sx={{ color: '#1976d2', mb: 4 }}>
-        Choose Your Free Plan
+    <Container maxWidth="md" sx={{ py: 6 }}>
+      <Typography variant="h4" sx={{ color: '#1976d2', mb: 4, textAlign: 'center' }}>
+        Choose Your Subscription
       </Typography>
-      <Typography align="center" sx={{ mb: 5, color: '#616161' }}>
-        Tailored automation for Students, Recruiters, and Businesses—no cost!
-      </Typography>
-      <Grid container spacing={4} justifyContent="center">
-        {plans.map((plan) => (
-          <Grid item key={plan.title}>
-            <SubscriptionCard
-              title={plan.title}
-              price={plan.price}
-              resumes={plan.resumes}
-              submissions={plan.submissions}
-              description={plan.description}
-              onSelect={() => handleSubscription(plan)}
-            />
-          </Grid>
+      <div style={{ display: 'flex', justifyContent: 'space-around', flexWrap: 'wrap' }}>
+        {plans.map((p) => (
+          <Card key={p.name} sx={{ width: 250, m: 2 }}>
+            <CardContent>
+              <Typography variant="h6">{p.name}</Typography>
+              <Typography>{p.price}</Typography>
+              <Typography>Up to {p.limit} submissions/day</Typography>
+            </CardContent>
+            <CardActions>
+              <Button
+                variant="contained"
+                color="primary"
+                fullWidth
+                onClick={() => handleSubscribe(p.name)}
+                disabled={plan === p.name}
+              >
+                {plan === p.name ? 'Subscribed' : 'Subscribe'}
+              </Button>
+            </CardActions>
+          </Card>
         ))}
-      </Grid>
-      {error && <Typography color="error" sx={{ mt: 2, textAlign: 'center' }}>{error}</Typography>}
+      </div>
     </Container>
   );
 }
