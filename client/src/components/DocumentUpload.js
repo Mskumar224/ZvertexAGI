@@ -19,13 +19,7 @@ function DocumentUpload({ userId, onUploadSuccess }) {
 
     const token = localStorage.getItem('token');
     if (!token) {
-      setError('Please log in to upload documents');
-      window.location.href = '/login';
-      return;
-    }
-
-    if (!userId) {
-      setError('User ID is missing');
+      setError('Please log in to upload');
       return;
     }
 
@@ -44,13 +38,14 @@ function DocumentUpload({ userId, onUploadSuccess }) {
       setError('');
       onUploadSuccess(data);
     } catch (err) {
-      console.error('Upload failed:', err);
-      setError(err.response?.data?.message || 'Upload failed. Please try again.');
+      setError(err.response?.data?.message || 'Upload failed');
+      console.error('Upload error:', err);
     }
   };
 
   return (
-    <Box sx={{ p: 2 }}>
+    <Box sx={{ p: 2, width: '100%', maxWidth: 400 }}>
+      <Typography variant="h6" sx={{ mb: 2 }}>Upload Resume</Typography>
       <TextField
         label="Description"
         fullWidth
@@ -61,8 +56,8 @@ function DocumentUpload({ userId, onUploadSuccess }) {
       <Box sx={{ mb: 2 }}>
         <input type="file" onChange={handleFileChange} accept=".pdf,.docx" />
       </Box>
-      <Button variant="contained" color="primary" onClick={handleUpload}>
-        Upload Document
+      <Button variant="contained" color="primary" onClick={handleUpload} fullWidth>
+        Upload
       </Button>
       {error && <Typography color="error" sx={{ mt: 2 }}>{error}</Typography>}
     </Box>

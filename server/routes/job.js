@@ -4,154 +4,122 @@ const Profile = require('../models/Profile');
 const User = require('../models/User');
 const Job = require('../models/Job');
 const jwt = require('jsonwebtoken');
-const nodemailer = require('nodemailer');
-
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: { user: 'zvertexai@honotech.com', pass: 'qnfz cudq ytwe vjwp' },
-});
+const pdfParse = require('pdf-parse');
+const mammoth = require('mammoth');
+const XLSX = require('xlsx');
 
 router.post('/upload', async (req, res) => {
-  if (!req.files || !req.files.file) {
-    return res.status(400).json({ message: 'No file uploaded' });
-  }
+  if (!req.files || !req.files.file) return res.status(400).json({ message: 'No file uploaded' });
+
+  const token = req.headers.authorization?.split('Bearer ')[1];
+  if (!token) return res.status(401).json({ message: 'No token provided' });
 
   const { file } = req.files;
   const { description, userId } = req.body;
 
-  if (!userId) {
-    return res.status(400).json({ message: 'User ID is required' });
-  }
-
   try {
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(userId || decoded.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    let extractedText = '';
+    if (file.mimetype === 'application/pdf') {
+      const pdfData = await pdfParse(file.data);
+      extractedText = pdfData.text;
+    } else if (file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+      const result = await mammoth.extractRawText({ buffer: file.data });
+      extractedText = result.value;
     }
+
+    const technologies = [
+      'JavaScript', 'Python', 'Java', 'C++', 'Ruby', 'Go', 'PHP', 'TypeScript', 
+      'React', 'Node.js', 'SQL', 'AWS', 'Angular', 'Vue.js', 'Django', 'Flask', 
+      'Spring', 'Kotlin', 'Swift', 'Rust', 'Scala', 'Perl', 'MATLAB', 'R'
+    ];
+    const detectedTechs = technologies.filter(tech => extractedText.toLowerCase().includes(tech.toLowerCase()));
+    const detectedTech = detectedTechs.length > 0 ? detectedTechs[0] : 'Unknown';
 
     const profile = new Profile({
       filename: file.name,
       data: file.data,
       mimetype: file.mimetype,
       description,
-      user: userId,
+      user: user._id,
+      extractedTech: detectedTech,
+      extractedText,
     });
     await profile.save();
 
     user.profiles.push(profile._id);
     await user.save();
 
-    res.json({ message: 'File uploaded successfully', profileId: profile._id });
+    res.json({ message: 'File uploaded successfully', profileId: profile._id, detectedTech });
   } catch (error) {
-    console.error('Upload error:', error); // Log error for debugging
     res.status(500).json({ message: 'Upload failed', error: error.message });
   }
 });
 
 router.post('/apply', async (req, res) => {
-  const { technology, companies, autoApplyType, profileDetails } = req.body;
+  const { technology, companies, profileId } = req.body;
   const token = req.headers.authorization?.split('Bearer ')[1];
-
-  if (!technology || !companies || companies.length === 0) {
-    return res.status(400).json({ message: 'Technology and at least one company are required' });
-  }
+  if (!token) return res.status(401).json({ message: 'No token provided' });
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
+    if (!technology || !companies || !Array.isArray(companies)) {
+      return res.status(400).json({ message: 'Invalid technology or companies data' });
+    }
+
     user.selectedTechnology = technology;
     user.selectedCompanies = companies;
-    if (autoApplyType === 'full' && profileDetails) {
-      user.profileDetails = profileDetails;
-    }
+    if (profileId) user.selectedProfile = profileId;
     await user.save();
 
     res.json({ message: 'Job preferences saved successfully' });
   } catch (error) {
-    console.error('Apply error:', error);
     res.status(500).json({ message: 'Failed to save preferences', error: error.message });
   }
 });
 
-router.post('/manual-apply', async (req, res) => {
-  const { jobId, title, company, link, profileId } = req.body;
+router.get('/export-dashboard/:userId', async (req, res) => {
+  const { userId } = req.params;
   const token = req.headers.authorization?.split('Bearer ')[1];
+  if (!token) return res.status(401).json({ message: 'No token provided' });
+
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id).populate('profiles');
+    const user = await User.findById(userId || decoded.id).populate('jobsApplied profiles');
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    const job = new Job({
-      jobId,
-      title,
-      company,
-      link,
-      applied: true,
-      user: user._id,
-      profile: profileId,
-      requiresDocs: !!profileId,
-    });
-    await job.save();
-    user.jobsApplied.push(job._id);
-    await user.save();
+    const workbook = XLSX.utils.book_new();
+    const worksheetData = [
+      ['Name', 'Email', 'Phone', 'Subscription', 'Technology', 'Companies', 'Jobs Applied', 'Job ID', 'Job Title', 'Company', 'Link'],
+      ...user.jobsApplied.map(job => [
+        user.name,
+        user.email,
+        user.phone,
+        user.subscription,
+        user.selectedTechnology,
+        user.selectedCompanies.join(', '),
+        user.jobsApplied.length,
+        job.jobId,
+        job.title,
+        job.company,
+        job.link,
+      ]),
+    ];
+    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Dashboard');
+    const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
 
-    const emailBody = profileId
-      ? `
-        <div style="font-family: Roboto, Arial, sans-serif; color: #333;">
-          <h2 style="color: #1976d2;">Application Submitted with Profile</h2>
-          <p>Dear ${user.name || user.email},</p>
-          <p>We’ve applied for you to:</p>
-          <ul>
-            <li><strong>Position:</strong> ${title}</li>
-            <li><strong>Company:</strong> ${company}</li>
-            <li><strong>Job ID:</strong> ${jobId}</li>
-            <li><strong>Link:</strong> <a href="${link}" style="color: #1976d2;">${link}</a></li>
-          </ul>
-          <p>Best regards,<br>The ZvertexAGI Team</p>
-        </div>
-      `
-      : `
-        <div style="font-family: Roboto, Arial, sans-serif; color: #333;">
-          <h2 style="color: #1976d2;">Application Submitted</h2>
-          <p>Dear ${user.name || user.email},</p>
-          <p>We’ve applied for you to:</p>
-          <ul>
-            <li><strong>Position:</strong> ${title}</li>
-            <li><strong>Company:</strong> ${company}</li>
-            <li><strong>Job ID:</strong> ${jobId}</li>
-            <li><strong>Link:</strong> <a href="${link}" style="color: #1976d2;">${link}</a></li>
-          </ul>
-          <p>Best regards,<br>The ZvertexAGI Team</p>
-        </div>
-      `;
-
-    await transporter.sendMail({
-      from: '"ZvertexAGI Team" <zvertexai@honotech.com>',
-      to: user.email,
-      subject: 'ZvertexAGI - Job Application Confirmation',
-      html: emailBody,
-    });
-
-    res.json({ message: 'Job applied successfully' });
+    res.setHeader('Content-Disposition', `attachment; filename="dashboard_${userId}.xlsx"`);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buffer);
   } catch (error) {
-    console.error('Manual apply error:', error);
-    res.status(500).json({ message: 'Application failed', error: error.message });
-  }
-});
-
-router.get('/user-jobs', async (req, res) => {
-  const token = req.headers.authorization?.split('Bearer ')[1];
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id).populate('jobsApplied');
-    if (!user) return res.status(404).json({ message: 'User not found' });
-
-    res.json(user.jobsApplied);
-  } catch (error) {
-    console.error('Fetch jobs error:', error);
-    res.status(500).json({ message: 'Failed to fetch jobs', error: error.message });
+    res.status(500).json({ message: 'Export failed', error: error.message });
   }
 });
 

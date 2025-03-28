@@ -21,7 +21,14 @@ function ForgotPassword() {
   return (
     <Container maxWidth="sm" sx={{ py: 8 }}>
       <Box sx={{ p: 4, background: '#fff', borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-        <Typography variant="h4" align="center" sx={{ color: '#1976d2', mb: 4 }}>Forgot Password</Typography>
+        <Typography 
+          variant="h4" 
+          align="center" 
+          sx={{ color: '#1976d2', mb: 4, cursor: 'pointer' }} 
+          onClick={() => window.location.href = '/'}
+        >
+          ZvertexAGI - Forgot Password
+        </Typography>
         <TextField label="Email" fullWidth value={email} onChange={(e) => setEmail(e.target.value)} sx={{ mb: 3 }} variant="outlined" />
         <Button variant="contained" color="primary" fullWidth onClick={handleSubmit} sx={{ py: 1.5 }}>Send Reset Link</Button>
         {message && <Typography sx={{ mt: 2, color: '#1976d2', textAlign: 'center' }}>{message}</Typography>}

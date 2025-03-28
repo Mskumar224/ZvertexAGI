@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
-import { Container, Typography, Button, Box, Grid, TextField, Card, CardContent, CardActions } from '@mui/material';
+import { Container, Typography, Button, Box, Grid, TextField, Card, CardContent, CardActions, useMediaQuery } from '@mui/material';
 import axios from 'axios';
-import { useHistory } from 'react-router-dom';
 
 function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
-  const history = useHistory();
   const token = localStorage.getItem('token');
+  const isMobile = useMediaQuery('(max-width:600px)');
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -21,46 +20,49 @@ function Home() {
   };
 
   const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      handleSearch();
-    }
+    if (e.key === 'Enter') handleSearch();
   };
 
-  const handleCardClick = (path) => {
+  const handleDashboardClick = (path) => {
     if (token) {
-      history.push(path);
+      window.location.href = path;
     } else {
-      history.push('/signup');
+      window.location.href = '/signup';
     }
   };
 
   return (
     <Container maxWidth="lg" sx={{ py: 6 }}>
       <Box sx={{ textAlign: 'center', mb: 6 }}>
-        <Typography variant="h2" sx={{ color: '#1976d2', fontWeight: 700, mb: 2 }}>
-          Welcome to ZvertexAGI
+        <Typography 
+          variant={isMobile ? 'h4' : 'h2'} 
+          sx={{ color: '#1976d2', fontWeight: 700, mb: 2, cursor: 'pointer' }} 
+          onClick={() => window.location.href = '/'}
+        >
+          ZvertexAI
         </Typography>
-        <Typography variant="h5" sx={{ color: '#6B7280', mb: 4 }}>
-          Automate Your Job Search with Cutting-Edge AI Technology
+        <Typography variant={isMobile ? 'h6' : 'h5'} sx={{ color: '#6B7280', mb: 4 }}>
+          Automate Your Job Search with Cutting-Edge AI
         </Typography>
-        <Button variant="contained" color="primary" size="large" onClick={() => history.push('/signup')}>
+        <Button variant="contained" color="primary" size="large" onClick={() => window.location.href = '/signup'}>
           Get Started
         </Button>
       </Box>
 
-      <Box sx={{ mb: 6, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+      <Box sx={{ mb: 6, display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: isMobile ? 'column' : 'row' }}>
         <TextField
           variant="outlined"
-          placeholder="Ask Zgpt anything..."
+          placeholder="Ask ZGpt anything..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           onKeyPress={handleKeyPress}
           sx={{
-            width: '50%',
+            width: isMobile ? '100%' : '50%',
             background: '#fff',
-            borderRadius: '25px 0 0 25px',
+            borderRadius: '25px 25px 25px 25px',
+            mb: isMobile ? 2 : 0,
             '& .MuiOutlinedInput-root': {
-              borderRadius: '25px 0 0 25px',
+              borderRadius: '25px',
               '& fieldset': { borderColor: '#1976d2' },
               '&:hover fieldset': { borderColor: '#115293' },
             },
@@ -70,7 +72,7 @@ function Home() {
           variant="contained"
           onClick={handleSearch}
           sx={{
-            borderRadius: '0 25px 25px 0',
+            borderRadius: '25px',
             background: 'linear-gradient(45deg, #1976d2, #42a5f5)',
             color: '#fff',
             fontWeight: 'bold',
@@ -78,7 +80,7 @@ function Home() {
             '&:hover': { background: 'linear-gradient(45deg, #115293, #1976d2)' },
           }}
         >
-          Zgpt
+          ZGpt
         </Button>
       </Box>
 
@@ -102,48 +104,26 @@ function Home() {
       )}
 
       <Grid container spacing={4}>
-        <Grid item xs={12} md={4}>
-          <Card
-            sx={{ p: 3, background: '#fff', borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', cursor: 'pointer' }}
-            onClick={() => handleCardClick('/student-dashboard')}
-          >
-            <CardContent>
-              <Typography variant="h6" sx={{ color: '#1976d2', mb: 1 }}>For Students</Typography>
-              <Typography sx={{ color: '#6B7280' }}>Land your dream job with automated applications.</Typography>
-            </CardContent>
-            <CardActions>
-              <Button size="small" color="primary">Get Started</Button>
-            </CardActions>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Card
-            sx={{ p: 3, background: '#fff', borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', cursor: 'pointer' }}
-            onClick={() => handleCardClick('/recruiter-dashboard')}
-          >
-            <CardContent>
-              <Typography variant="h6" sx={{ color: '#1976d2', mb: 1 }}>For Recruiters</Typography>
-              <Typography sx={{ color: '#6B7280' }}>Manage multiple profiles effortlessly.</Typography>
-            </CardContent>
-            <CardActions>
-              <Button size="small" color="primary">Get Started</Button>
-            </CardActions>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Card
-            sx={{ p: 3, background: '#fff', borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', cursor: 'pointer' }}
-            onClick={() => handleCardClick('/business-dashboard')}
-          >
-            <CardContent>
-              <Typography variant="h6" sx={{ color: '#1976d2', mb: 1 }}>For Businesses</Typography>
-              <Typography sx={{ color: '#6B7280' }}>Scale hiring with powerful tools.</Typography>
-            </CardContent>
-            <CardActions>
-              <Button size="small" color="primary">Get Started</Button>
-            </CardActions>
-          </Card>
-        </Grid>
+        {[
+          { title: 'For Students', desc: 'Land your dream job', path: '/student-dashboard' },
+          { title: 'For Recruiters', desc: 'Manage 5 profiles', path: '/recruiter-dashboard' },
+          { title: 'For Businesses', desc: 'Scale with 3 recruiters', path: '/business-dashboard' },
+        ].map((item) => (
+          <Grid item xs={12} md={4} key={item.title}>
+            <Card 
+              sx={{ cursor: 'pointer', '&:hover': { boxShadow: '0 4px 16px rgba(0,0,0,0.2)' } }} 
+              onClick={() => handleDashboardClick(item.path)}
+            >
+              <CardContent>
+                <Typography variant="h6" sx={{ color: '#1976d2', mb: 1 }}>{item.title}</Typography>
+                <Typography sx={{ color: '#6B7280' }}>{item.desc}</Typography>
+              </CardContent>
+              <CardActions>
+                <Button size="small" color="primary">Go to Dashboard</Button>
+              </CardActions>
+            </Card>
+          </Grid>
+        ))}
       </Grid>
     </Container>
   );

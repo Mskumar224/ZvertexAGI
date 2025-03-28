@@ -1,44 +1,46 @@
 import React, { useState } from 'react';
 import { Container, Typography, Button, Card, CardContent, CardActions } from '@mui/material';
 import axios from 'axios';
-import { useHistory } from 'react-router-dom';
 
 function Subscription() {
   const [plan, setPlan] = useState('');
-  const history = useHistory();
 
   const plans = [
-    { name: 'STUDENT', price: '$10/month', limit: 45, path: '/student-dashboard' },
-    { name: 'RECRUITER', price: '$15/month', limit: 45, path: '/recruiter-dashboard' },
-    { name: 'BUSINESS', price: '$50/month', limit: 145, path: '/business-dashboard' },
+    { name: 'STUDENT', price: '$10/month', limit: 45 },
+    { name: 'RECRUITER', price: '$15/month', limit: 225 },
+    { name: 'BUSINESS', price: '$50/month', limit: 675 },
   ];
 
   const handleSubscribe = async (selectedPlan) => {
     const token = localStorage.getItem('token');
     if (!token) {
-      history.push('/login');
+      window.location.href = '/login';
       return;
     }
 
     try {
-      await axios.post(
+      const { data } = await axios.post(
         `${process.env.REACT_APP_API_URL}/api/subscription/subscribe`,
-        { plan: selectedPlan.name },
+        { plan: selectedPlan },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setPlan(selectedPlan.name);
-      alert(`Subscribed to ${selectedPlan.name} plan!`);
-      history.push(selectedPlan.path); // Redirect to appropriate dashboard
+      setPlan(selectedPlan);
+      alert(`Subscribed to ${selectedPlan} plan!`);
+      window.location.href = data.redirect;
     } catch (err) {
       console.error('Subscription failed:', err);
-      alert('Subscription failed.');
+      alert('Subscription failed: ' + (err.response?.data?.message || 'Unknown error'));
     }
   };
 
   return (
     <Container maxWidth="md" sx={{ py: 6 }}>
-      <Typography variant="h4" sx={{ color: '#1976d2', mb: 4, textAlign: 'center' }}>
-        Choose Your Subscription
+      <Typography 
+        variant="h4" 
+        sx={{ color: '#1976d2', mb: 4, textAlign: 'center', cursor: 'pointer' }} 
+        onClick={() => window.location.href = '/'}
+      >
+        ZvertexAI - Choose Your Subscription
       </Typography>
       <div style={{ display: 'flex', justifyContent: 'space-around', flexWrap: 'wrap' }}>
         {plans.map((p) => (
@@ -53,7 +55,7 @@ function Subscription() {
                 variant="contained"
                 color="primary"
                 fullWidth
-                onClick={() => handleSubscribe(p)}
+                onClick={() => handleSubscribe(p.name)}
                 disabled={plan === p.name}
               >
                 {plan === p.name ? 'Subscribed' : 'Subscribe'}

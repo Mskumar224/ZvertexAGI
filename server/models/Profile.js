@@ -1,15 +1,13 @@
-// File Location: C:\Users\satee\OneDrive\Desktop\ZvertexAGI\ZvertexAGI\server\models\Profile.js
 const mongoose = require('mongoose');
 
 const profileSchema = new mongoose.Schema({
+  filename: String,
+  data: Buffer,
+  mimetype: String,
+  description: String,
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  name: String,
-  phone: String,
-  education: String,
-  experience: String,
-  resume: Buffer,
-  idDoc: Buffer,
-  visaDoc: Buffer,
+  extractedTech: String,
+  extractedText: String,
   createdAt: { type: Date, default: Date.now },
 });
 
