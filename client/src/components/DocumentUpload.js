@@ -17,6 +17,18 @@ function DocumentUpload({ userId, onUploadSuccess }) {
       return;
     }
 
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setError('Please log in to upload documents');
+      window.location.href = '/login';
+      return;
+    }
+
+    if (!userId) {
+      setError('User ID is missing');
+      return;
+    }
+
     const formData = new FormData();
     formData.append('file', file);
     formData.append('description', description);
@@ -24,13 +36,16 @@ function DocumentUpload({ userId, onUploadSuccess }) {
 
     try {
       const { data } = await axios.post(`${process.env.REACT_APP_API_URL}/api/job/upload`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`,
+        },
       });
       setError('');
       onUploadSuccess(data);
     } catch (err) {
       console.error('Upload failed:', err);
-      setError(err.response?.data?.message || 'Upload failed');
+      setError(err.response?.data?.message || 'Upload failed. Please try again.');
     }
   };
 

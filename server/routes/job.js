@@ -19,7 +19,16 @@ router.post('/upload', async (req, res) => {
   const { file } = req.files;
   const { description, userId } = req.body;
 
+  if (!userId) {
+    return res.status(400).json({ message: 'User ID is required' });
+  }
+
   try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
     const profile = new Profile({
       filename: file.name,
       data: file.data,
@@ -29,12 +38,12 @@ router.post('/upload', async (req, res) => {
     });
     await profile.save();
 
-    const user = await User.findById(userId);
     user.profiles.push(profile._id);
     await user.save();
 
     res.json({ message: 'File uploaded successfully', profileId: profile._id });
   } catch (error) {
+    console.error('Upload error:', error); // Log error for debugging
     res.status(500).json({ message: 'Upload failed', error: error.message });
   }
 });
@@ -61,6 +70,7 @@ router.post('/apply', async (req, res) => {
 
     res.json({ message: 'Job preferences saved successfully' });
   } catch (error) {
+    console.error('Apply error:', error);
     res.status(500).json({ message: 'Failed to save preferences', error: error.message });
   }
 });
@@ -126,6 +136,7 @@ router.post('/manual-apply', async (req, res) => {
 
     res.json({ message: 'Job applied successfully' });
   } catch (error) {
+    console.error('Manual apply error:', error);
     res.status(500).json({ message: 'Application failed', error: error.message });
   }
 });
@@ -139,6 +150,7 @@ router.get('/user-jobs', async (req, res) => {
 
     res.json(user.jobsApplied);
   } catch (error) {
+    console.error('Fetch jobs error:', error);
     res.status(500).json({ message: 'Failed to fetch jobs', error: error.message });
   }
 });
