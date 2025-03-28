@@ -1,45 +1,77 @@
 import React from 'react';
-import { Box, Typography, Button, Divider } from '@mui/material';
+import { Drawer, List, ListItem, ListItemText, Typography, Button } from '@mui/material';
 import { useHistory } from 'react-router-dom';
 
-function Sidebar({ isLoggedIn, setIsLoggedIn }) {
+function Sidebar({ drawerWidth }) {
   const history = useHistory();
+  const token = localStorage.getItem('token');
+
+  const menuItems = [
+    { text: 'Home', path: '/', desc: 'Explore ZvertexAGI' },
+    { text: 'Signup', path: '/signup', desc: 'Join us today!' },
+    { text: 'Login', path: '/login', desc: 'Access your account' },
+    { text: 'Subscription', path: '/subscription', desc: 'Choose your plan' },
+    { text: 'Student Dashboard', path: '/student-dashboard', desc: 'Manage your job hunt' },
+    { text: 'Recruiter Dashboard', path: '/recruiter-dashboard', desc: 'Handle multiple profiles' },
+    { text: 'Business Dashboard', path: '/business-dashboard', desc: 'Scale your hiring' },
+    { text: 'Job Apply', path: '/job-apply', desc: 'Set up auto-apply' },
+    { text: 'Zgpt', path: '/zgpt', desc: 'Ask our AI anything' },
+  ];
 
   const handleLogout = () => {
     localStorage.removeItem('token');
-    setIsLoggedIn(false);
-    history.push('/');
+    history.push('/login');
   };
 
   return (
-    <Box sx={{ width: 250, background: '#fff', p: 2, boxShadow: 1 }}>
-      <Typography variant="h6" sx={{ color: '#1976d2', mb: 2 }}>ZvertexAGI</Typography>
-      <Divider sx={{ mb: 2 }} />
-      <Button fullWidth sx={{ mb: 1, justifyContent: 'flex-start' }} onClick={() => history.push('/')}>Home</Button>
-      <Button fullWidth sx={{ mb: 1, justifyContent: 'flex-start' }} onClick={() => history.push('/saas')}>SaaS</Button>
-      <Button fullWidth sx={{ mb: 1, justifyContent: 'flex-start' }} onClick={() => history.push('/zgpt')}>ZGPT</Button>
-      <Button fullWidth sx={{ mb: 1, justifyContent: 'flex-start' }} onClick={() => history.push('/petmic')}>PetMic</Button>
-      <Divider sx={{ my: 2 }} />
-      <Typography sx={{ color: '#1976d2', mb: 1 }}>For You</Typography>
-      <Button fullWidth sx={{ mb: 1, justifyContent: 'flex-start' }} onClick={() => history.push('/subscription')}>
-        Automate Your Career (Student)
+    <Drawer
+      variant="permanent"
+      sx={{
+        width: drawerWidth,
+        flexShrink: 0,
+        [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: 'border-box', backgroundColor: '#1976d2', color: '#fff', p: 2 },
+      }}
+    >
+      <Typography
+        variant="h5"
+        sx={{ p: 2, fontWeight: 'bold', cursor: 'pointer' }}
+        onClick={() => history.push('/')}
+      >
+        ZvertexAGI
+      </Typography>
+      <List>
+        {menuItems.map((item) => (
+          <ListItem
+            button
+            key={item.text}
+            onClick={() => history.push(item.path)}
+            sx={{ borderRadius: 2, mb: 1, '&:hover': { backgroundColor: '#115293' } }}
+          >
+            <ListItemText
+              primary={item.text}
+              secondary={<Typography variant="caption" sx={{ color: '#b0c4de' }}>{item.desc}</Typography>}
+            />
+          </ListItem>
+        ))}
+        {token && (
+          <ListItem
+            button
+            onClick={handleLogout}
+            sx={{ borderRadius: 2, mb: 1, '&:hover': { backgroundColor: '#115293' } }}
+          >
+            <ListItemText primary="Logout" secondary={<Typography variant="caption" sx={{ color: '#b0c4de' }}>Sign out securely</Typography>} />
+          </ListItem>
+        )}
+      </List>
+      <Button
+        variant="contained"
+        color="secondary"
+        sx={{ mt: 2, mx: 2 }}
+        onClick={() => history.push('/subscription')}
+      >
+        Subscribe Now
       </Button>
-      <Button fullWidth sx={{ mb: 1, justifyContent: 'flex-start' }} onClick={() => history.push('/subscription')}>
-        Hire Smarter (Recruiter)
-      </Button>
-      <Button fullWidth sx={{ mb: 1, justifyContent: 'flex-start' }} onClick={() => history.push('/subscription')}>
-        Scale Your Team (Business)
-      </Button>
-      <Divider sx={{ my: 2 }} />
-      {isLoggedIn ? (
-        <Button fullWidth sx={{ color: '#1976d2' }} onClick={handleLogout}>Logout</Button>
-      ) : (
-        <>
-          <Button fullWidth sx={{ mb: 1, justifyContent: 'flex-start' }} onClick={() => history.push('/login')}>Login</Button>
-          <Button fullWidth sx={{ mb: 1, justifyContent: 'flex-start' }} onClick={() => history.push('/signup')}>Sign Up</Button>
-        </>
-      )}
-    </Box>
+    </Drawer>
   );
 }
 

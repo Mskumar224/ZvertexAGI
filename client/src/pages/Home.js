@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
-import { Container, Typography, Button, Box, Grid, TextField } from '@mui/material';
+import { Container, Typography, Button, Box, Grid, TextField, Card, CardContent, CardActions } from '@mui/material';
 import axios from 'axios';
+import { useHistory } from 'react-router-dom';
 
 function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  const history = useHistory();
+  const token = localStorage.getItem('token');
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -23,6 +26,14 @@ function Home() {
     }
   };
 
+  const handleCardClick = (path) => {
+    if (token) {
+      history.push(path);
+    } else {
+      history.push('/signup');
+    }
+  };
+
   return (
     <Container maxWidth="lg" sx={{ py: 6 }}>
       <Box sx={{ textAlign: 'center', mb: 6 }}>
@@ -32,12 +43,11 @@ function Home() {
         <Typography variant="h5" sx={{ color: '#6B7280', mb: 4 }}>
           Automate Your Job Search with Cutting-Edge AI Technology
         </Typography>
-        <Button variant="contained" color="primary" size="large" onClick={() => window.location.href = '/signup'}>
+        <Button variant="contained" color="primary" size="large" onClick={() => history.push('/signup')}>
           Get Started
         </Button>
       </Box>
 
-      {/* Zgpt Search Bar */}
       <Box sx={{ mb: 6, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
         <TextField
           variant="outlined"
@@ -72,7 +82,6 @@ function Home() {
         </Button>
       </Box>
 
-      {/* Search Results */}
       {searchResults.length > 0 && (
         <Box sx={{ mb: 6, p: 3, background: '#fff', borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
           <Typography variant="h6" sx={{ mb: 2 }}>Search Results</Typography>
@@ -94,22 +103,46 @@ function Home() {
 
       <Grid container spacing={4}>
         <Grid item xs={12} md={4}>
-          <Box sx={{ p: 3, background: '#fff', borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-            <Typography variant="h6" sx={{ color: '#1976d2', mb: 1 }}>For Students</Typography>
-            <Typography sx={{ color: '#6B7280' }}>Land your dream job with automated applications.</Typography>
-          </Box>
+          <Card
+            sx={{ p: 3, background: '#fff', borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', cursor: 'pointer' }}
+            onClick={() => handleCardClick('/student-dashboard')}
+          >
+            <CardContent>
+              <Typography variant="h6" sx={{ color: '#1976d2', mb: 1 }}>For Students</Typography>
+              <Typography sx={{ color: '#6B7280' }}>Land your dream job with automated applications.</Typography>
+            </CardContent>
+            <CardActions>
+              <Button size="small" color="primary">Get Started</Button>
+            </CardActions>
+          </Card>
         </Grid>
         <Grid item xs={12} md={4}>
-          <Box sx={{ p: 3, background: '#fff', borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-            <Typography variant="h6" sx={{ color: '#1976d2', mb: 1 }}>For Recruiters</Typography>
-            <Typography sx={{ color: '#6B7280' }}>Manage multiple profiles effortlessly.</Typography>
-          </Box>
+          <Card
+            sx={{ p: 3, background: '#fff', borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', cursor: 'pointer' }}
+            onClick={() => handleCardClick('/recruiter-dashboard')}
+          >
+            <CardContent>
+              <Typography variant="h6" sx={{ color: '#1976d2', mb: 1 }}>For Recruiters</Typography>
+              <Typography sx={{ color: '#6B7280' }}>Manage multiple profiles effortlessly.</Typography>
+            </CardContent>
+            <CardActions>
+              <Button size="small" color="primary">Get Started</Button>
+            </CardActions>
+          </Card>
         </Grid>
         <Grid item xs={12} md={4}>
-          <Box sx={{ p: 3, background: '#fff', borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-            <Typography variant="h6" sx={{ color: '#1976d2', mb: 1 }}>For Businesses</Typography>
-            <Typography sx={{ color: '#6B7280' }}>Scale hiring with powerful tools.</Typography>
-          </Box>
+          <Card
+            sx={{ p: 3, background: '#fff', borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', cursor: 'pointer' }}
+            onClick={() => handleCardClick('/business-dashboard')}
+          >
+            <CardContent>
+              <Typography variant="h6" sx={{ color: '#1976d2', mb: 1 }}>For Businesses</Typography>
+              <Typography sx={{ color: '#6B7280' }}>Scale hiring with powerful tools.</Typography>
+            </CardContent>
+            <CardActions>
+              <Button size="small" color="primary">Get Started</Button>
+            </CardActions>
+          </Card>
         </Grid>
       </Grid>
     </Container>

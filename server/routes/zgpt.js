@@ -4,8 +4,10 @@ const axios = require('axios');
 
 router.post('/search', async (req, res) => {
   const { query } = req.body;
+  if (!query) return res.status(400).json({ error: 'Query is required' });
+
   try {
-    // Mock search results for Zgpt functionality
+    // Mock search results (replace with real API like SerpAPI when available)
     const mockResults = [
       { 
         title: `${query} Overview`, 
@@ -23,6 +25,22 @@ router.post('/search', async (req, res) => {
         link: `https://example.com/${query.toLowerCase().replace(/\s+/g, '-')}/resources` 
       },
     ];
+
+    // Optional: Integrate SerpAPI (requires API key)
+    /*
+    const response = await axios.get('https://serpapi.com/search', {
+      params: {
+        q: query,
+        api_key: process.env.SERPAPI_KEY,
+      },
+    });
+    const results = response.data.organic_results.map(result => ({
+      title: result.title,
+      content: result.snippet,
+      link: result.link,
+    }));
+    res.json({ results });
+    */
 
     res.json({ results: mockResults });
   } catch (error) {

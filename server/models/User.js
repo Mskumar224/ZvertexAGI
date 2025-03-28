@@ -13,6 +13,14 @@ const userSchema = new mongoose.Schema({
   selectedCompanies: [{ type: String }],
   selectedTechnology: { type: String },
   recruiters: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  profileDetails: {
+    fullName: String,
+    address: String,
+    experience: String,
+    education: String,
+    skills: [String],
+    additionalInfo: String,
+  },
 });
 
 module.exports = mongoose.model('User', userSchema);

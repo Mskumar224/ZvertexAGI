@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, TextField, Box } from '@mui/material'; // Added Box import
+import { Button, TextField, Box, Typography } from '@mui/material';
 import axios from 'axios';
 
 function DocumentUpload({ userId, onUploadSuccess }) {
@@ -29,6 +29,7 @@ function DocumentUpload({ userId, onUploadSuccess }) {
       setError('');
       onUploadSuccess(data);
     } catch (err) {
+      console.error('Upload failed:', err);
       setError(err.response?.data?.message || 'Upload failed');
     }
   };
@@ -48,7 +49,7 @@ function DocumentUpload({ userId, onUploadSuccess }) {
       <Button variant="contained" color="primary" onClick={handleUpload}>
         Upload Document
       </Button>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {error && <Typography color="error" sx={{ mt: 2 }}>{error}</Typography>}
     </Box>
   );
 }

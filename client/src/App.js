@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Switch, Route, Redirect } from 'react-router-dom';
-import { Box, CssBaseline, Drawer, List, ListItem, ListItemText } from '@mui/material'; // Removed unused Button
+import { Box, CssBaseline, Typography } from '@mui/material';
+import Sidebar from './components/Sidebar';
 import Home from './pages/Home';
 import Signup from './pages/Signup';
 import Login from './pages/Login';
@@ -18,50 +19,19 @@ import Petmic from './pages/Petmic';
 const drawerWidth = 240;
 
 function App() {
-  const token = localStorage.getItem('token');
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    window.location.href = '/login';
-  };
-
   return (
     <Router>
       <Box sx={{ display: 'flex' }}>
         <CssBaseline />
-        <Drawer
-          variant="permanent"
-          sx={{
-            width: drawerWidth,
-            flexShrink: 0,
-            [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: 'border-box', backgroundColor: '#1976d2', color: '#fff' },
-          }}
-        >
-          <Box sx={{ overflow: 'auto' }}>
-            <List>
-              {[
-                { text: 'Home', path: '/' },
-                { text: 'Signup', path: '/signup' },
-                { text: 'Login', path: '/login' },
-                { text: 'Subscription', path: '/subscription' },
-                { text: 'Student Dashboard', path: '/student-dashboard' },
-                { text: 'Recruiter Dashboard', path: '/recruiter-dashboard' },
-                { text: 'Business Dashboard', path: '/business-dashboard' },
-                { text: 'Job Apply', path: '/job-apply' },
-              ].map((item) => (
-                <ListItem button key={item.text} onClick={() => window.location.href = item.path}>
-                  <ListItemText primary={item.text} />
-                </ListItem>
-              ))}
-              {token && (
-                <ListItem button onClick={handleLogout}>
-                  <ListItemText primary="Logout" />
-                </ListItem>
-              )}
-            </List>
-          </Box>
-        </Drawer>
-        <Box component="main" sx={{ flexGrow: 1, p: 3, background: '#f5f5f5' }}>
+        <Sidebar drawerWidth={drawerWidth} />
+        <Box component="main" sx={{ flexGrow: 1, p: 3, background: '#f5f5f5', minHeight: '100vh' }}>
+          <Typography
+            variant="h5"
+            sx={{ color: '#1976d2', fontWeight: 'bold', cursor: 'pointer', mb: 2 }}
+            onClick={() => window.location.href = '/'}
+          >
+            ZvertexAGI
+          </Typography>
           <Switch>
             <Route exact path="/" component={Home} />
             <Route path="/signup" component={Signup} />

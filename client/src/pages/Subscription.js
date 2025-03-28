@@ -1,31 +1,34 @@
 import React, { useState } from 'react';
-import { Container, Typography, Button, Card, CardContent, CardActions } from '@mui/material'; // Removed unused Box
+import { Container, Typography, Button, Card, CardContent, CardActions } from '@mui/material';
 import axios from 'axios';
+import { useHistory } from 'react-router-dom';
 
 function Subscription() {
   const [plan, setPlan] = useState('');
+  const history = useHistory();
 
   const plans = [
-    { name: 'STUDENT', price: '$10/month', limit: 45 },
-    { name: 'RECRUITER', price: '$15/month', limit: 45 },
-    { name: 'BUSINESS', price: '$50/month', limit: 145 },
+    { name: 'STUDENT', price: '$10/month', limit: 45, path: '/student-dashboard' },
+    { name: 'RECRUITER', price: '$15/month', limit: 45, path: '/recruiter-dashboard' },
+    { name: 'BUSINESS', price: '$50/month', limit: 145, path: '/business-dashboard' },
   ];
 
   const handleSubscribe = async (selectedPlan) => {
     const token = localStorage.getItem('token');
     if (!token) {
-      window.location.href = '/login';
+      history.push('/login');
       return;
     }
 
     try {
       await axios.post(
         `${process.env.REACT_APP_API_URL}/api/subscription/subscribe`,
-        { plan: selectedPlan },
+        { plan: selectedPlan.name },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setPlan(selectedPlan);
-      alert(`Subscribed to ${selectedPlan} plan!`);
+      setPlan(selectedPlan.name);
+      alert(`Subscribed to ${selectedPlan.name} plan!`);
+      history.push(selectedPlan.path); // Redirect to appropriate dashboard
     } catch (err) {
       console.error('Subscription failed:', err);
       alert('Subscription failed.');
@@ -50,7 +53,7 @@ function Subscription() {
                 variant="contained"
                 color="primary"
                 fullWidth
-                onClick={() => handleSubscribe(p.name)}
+                onClick={() => handleSubscribe(p)}
                 disabled={plan === p.name}
               >
                 {plan === p.name ? 'Subscribed' : 'Subscribe'}
